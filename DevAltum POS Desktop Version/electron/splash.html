@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevAltum POS</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #0f172a;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            border-radius: 16px;
+            border: 1px solid #334155;
+        }
+
+        .splash-container {
+            width: 85%;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .brand-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 900;
+            color: #fff;
+            box-shadow: 0 10px 25px rgba(34, 197, 94, 0.4);
+            margin-bottom: 16px;
+        }
+
+        .brand-title {
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .brand-subtitle {
+            font-size: 12px;
+            color: #94a3b8;
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+
+        .progress-bar-wrap {
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 15%;
+            background: linear-gradient(90deg, #16a34a, #22c55e);
+            border-radius: 999px;
+            transition: width 0.3s ease;
+        }
+
+        .status-text {
+            font-size: 11.5px;
+            color: #cbd5e1;
+            font-weight: 700;
+        }
+
+        .version-tag {
+            position: absolute;
+            bottom: 12px;
+            font-size: 10px;
+            color: #64748b;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="splash-container">
+        <img src="assets/icon.png" alt="DevAltum POS" style="width: 68px; height: 68px; margin-bottom: 12px; border-radius: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        <div class="brand-title">DevAltum POS</div>
+        <div class="brand-subtitle">Commercial Desktop Edition</div>
+
+        <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="progress-fill"></div>
+        </div>
+        <div class="status-text" id="status-label">Starting POS Engine...</div>
+    </div>
+    <div class="version-tag">Version 1.0.0 &bull; Standalone Edition</div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.on('init-progress', (event, { message, percent }) => {
+            document.getElementById('status-label').textContent = message;
+            document.getElementById('progress-fill').style.width = percent + '%';
+        });
+    </script>
+</body>
+</html>
+

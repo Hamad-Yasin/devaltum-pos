@@ -1,0 +1,35 @@
+{
+  "name": "pos-mobile-scanner-app",
+  "version": "2.0.0",
+  "description": "Enterprise Wireless Mobile Barcode Scanner & Companion for DevAltum POS",
+  "main": "index.js",
+  "scripts": {
+    "install:deps": "npm install",
+    "cap:add": "npx cap add android",
+    "cap:sync": "npx cap sync",
+    "cap:copy": "npx cap copy",
+    "cap:open": "npx cap open android",
+    "cap:run": "npx cap run android",
+    "build": "npx cap copy"
+  },
+  "keywords": [
+    "pos",
+    "barcode-scanner",
+    "capacitor",
+    "mobile-scanner",
+    "retail"
+  ],
+  "author": "DevAltum Pro Team",
+  "license": "MIT",
+  "dependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/camera": "^6.1.0",
+    "@capacitor/core": "^6.1.2",
+    "@capacitor/haptics": "^6.0.2",
+    "@capacitor/preferences": "^6.0.2",
+    "@capacitor/status-bar": "^6.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2"
+  }
+}

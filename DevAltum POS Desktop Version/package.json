@@ -1,0 +1,89 @@
+{
+  "name": "devaltump-pos-desktop",
+  "version": "1.0.0",
+  "description": "DevAltum POS - Commercial Desktop Edition",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "sync": "node scripts/sync-application.js",
+    "build:win": "node scripts/sync-application.js && electron-builder --win nsis"
+  },
+  "keywords": [
+    "pos",
+    "devaltum",
+    "retail",
+    "desktop",
+    "electron",
+    "offline"
+  ],
+  "author": "DevAltum Technologies",
+  "license": "Proprietary",
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11",
+    "portfinder": "^1.0.32"
+  },
+  "build": {
+    "appId": "com.devaltum.pos.desktop",
+    "productName": "DevAltum POS",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Hamad-Yasin",
+        "repo": "devaltum-pos"
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "runtime",
+        "to": "runtime",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "application",
+        "to": "application",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "installer",
+        "to": "installer",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "electron/assets/icon.ico",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "DevAltum POS",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "DevAltum_POS_Setup_${version}.${ext}",
+      "uninstallDisplayName": "DevAltum POS",
+      "include": "installer/installer.nsh",
+      "installerIcon": "electron/assets/icon.ico",
+      "uninstallerIcon": "electron/assets/icon.ico"
+    }
+  }
+}

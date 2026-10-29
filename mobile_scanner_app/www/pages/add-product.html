@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f6dff">
+    <title>DevAltum POS - Register Product</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0">
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .cal-day-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #1e293b;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.12s ease;
+            background: transparent;
+        }
+        .cal-day-cell:hover {
+            background: #f1f5f9;
+        }
+        .cal-day-cell.selected {
+            background: #0f6dff;
+            color: #fff;
+            font-weight: 700;
+            box-shadow: 0 3px 8px rgba(15,109,255,0.3);
+        }
+        .cal-day-cell.today {
+            border-color: #0f6dff;
+            color: #0f6dff;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <section class="view-screen no-bottom-nav" id="view-add-product">
+        <!-- Top App Header -->
+        <header class="app-header">
+            <button type="button" class="header-action-btn" onclick="navigateTo('products')">
+                <span class="material-symbols-rounded">arrow_back_ios_new</span>
+            </button>
+            <div class="header-title-text" id="add-product-header-title" style="font-size:18px; font-weight: 700;">Register New Product</div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <button type="button" class="header-action-btn" id="btn-header-delete-product" style="display:none; color:#ef4444;" onclick="confirmDeleteCurrentProduct()" title="Delete Product">
+                    <span class="material-symbols-rounded">delete</span>
+                </button>
+                <button type="button" class="header-action-btn" onclick="resetAddProductForm(true)" title="Clear Form">
+                    <span class="material-symbols-rounded">restart_alt</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Scrollable Form Content -->
+        <div class="view-scroll-content" style="padding:14px 14px 24px 14px;">
+            <form id="full-add-product-form" onsubmit="handleFullAddProductSubmit(event)">
+                <!-- 1. CARD: Product Details -->
+                <div class="product-form-card">
+                    <div class="product-form-header">
+                        <div class="product-form-title-wrap">
+                            <div class="product-form-icon-box">
+                                <span class="material-symbols-rounded" style="font-size:20px;">inventory_2</span>
+                            </div>
+                            <div class="product-form-title">Product Details</div>
+                        </div>
+                    </div>
+
+                    <!-- Barcode / SKU Field with Camera Scan Action -->
+                    <div class="product-input-wrap">
+                        <div class="product-input-label" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                            <span>Barcode / SKU</span>
+                            <button type="button" class="btn-form-inline-action" onclick="openAddProductScanner()">
+                                <span class="material-symbols-rounded" style="font-size:15px; line-height:1;">qr_code_scanner</span>
+                                <span style="line-height:1;">Camera Scan</span>
+                            </button>
+                        </div>
+                        <div class="input-with-icon-box">
+                            <span class="material-symbols-rounded input-icon-prefix">qr_code_scanner</span>
+                            <input type="text" id="full-add-barcode" class="form-control-pro" placeholder="Scan barcode or leave blank to auto-generate..." oninput="handleBarcodeFieldInput(this.value)">
+                        </div>
+                        <!-- Live Barcode Visual Preview Box -->
+                        <div id="barcode-live-preview-wrap" style="display:none; margin-top:10px; background:#ffffff; border:1.5px solid #e2e8f0; border-radius:14px; padding:12px 14px; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.04); transition: all 0.2s ease;">
+                            <div style="font-size:10.5px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; gap:4px;">
+                                <span class="material-symbols-rounded" style="font-size:14px; color:#0f6dff;">barcode</span>
+                                <span>Barcode Visual Preview</span>
+                            </div>
+                            <svg id="barcode-live-svg" style="max-width:100%; height:46px; display:block; margin:0 auto;"></svg>
+                            <div id="barcode-live-text" style="font-size:12.5px; font-weight:700; color:#0f172a; letter-spacing:1px; margin-top:4px; font-family:monospace;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Product Name -->
+                    <div class="product-input-wrap">
+                        <div class="product-input-label">
+                            <span>Product Name <strong style="color:#ef4444;">*</strong></span>
+                        </div>
+                        <div class="input-with-icon-box">
+                            <span class="material-symbols-rounded input-icon-prefix">sell</span>
+                            <input type="text" id="full-add-name" class="form-control-pro" placeholder="Enter product name" required>
+                        </div>
+                    </div>
+
+                    <!-- Model / SKU & Unit Value 2-Column Grid -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+                        <div>
+                            <div class="product-input-label">
+                                <span>Model / SKU</span>
+                            </div>
+                            <div class="input-with-icon-box">
+                                <span class="material-symbols-rounded input-icon-prefix">tag</span>
+                                <input type="text" id="full-add-sku" class="form-control-pro" placeholder="Enter model/SKU">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="product-input-label">
+                                <span>Unit Value</span>
+                            </div>
+                            <div class="input-with-icon-box">
+                                <span class="material-symbols-rounded input-icon-prefix">hourglass_empty</span>
+                                <input type="number" id="full-add-unit-val" class="form-control-pro" value="1" min="0.001" step="any">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Unit Type -->
+                    <div class="product-input-wrap" style="margin-bottom:0;">
+                        <div class="product-input-label">
+                            <span>Unit Type</span>
+                        </div>
+                        <div class="input-with-icon-box">
+                            <select id="full-add-unit-type" class="form-control-pro" style="padding-left:14px; font-weight: 700; cursor:pointer;">
+                                <option value="pcs">PCS</option>
+                                <option value="pack">Pack</option>
+                                <option value="box">Box</option>
+                                <option value="kg">Kg</option>
+                                <option value="g">Gram</option>
+                                <option value="litre">Litre</option>
+                                <option value="bottle">Bottle</option>
+                                <option value="carton">Carton</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. CARD: Pricing & Stock -->
+                <div class="product-form-card">
+                    <div class="product-form-header">
+                        <div class="product-form-title-wrap">
+                            <div class="product-form-icon-box green">
+                                <span class="material-symbols-rounded" style="font-size:20px;">payments</span>
+                            </div>
+                            <div class="product-form-title">Pricing & Stock</div>
+                        </div>
+                    </div>
+
+                    <!-- Retail Price & Wholesale 2-Column Grid -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+                        <div>
+                            <div class="product-input-label">
+                                <span>Retail Price <strong style="color:#ef4444;">*</strong></span>
+                            </div>
+                            <div class="input-with-icon-box">
+                                <span class="material-symbols-rounded input-icon-prefix" style="color:#16a34a;">sell</span>
+                                <input type="number" id="full-add-price" class="form-control-pro" placeholder="0.00" min="0.01" step="any" required oninput="calculateProfitMargin()" style="color:#16a34a; font-weight: 700;">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="product-input-label">
+                                <span>Wholesale <span style="font-size:10px; color:#94a3b8;">(Optional)</span></span>
+                            </div>
+                            <div class="input-with-icon-box">
+                                <span class="material-symbols-rounded input-icon-prefix">storefront</span>
+                                <input type="number" id="full-add-wholesale" class="form-control-pro" placeholder="Optional (Defaults to Retail)" min="0" step="any">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cost Price & Initial Stock 2-Column Grid -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+                        <div>
+                            <div class="product-input-label">
+                                <span>Cost Price</span>
+                            </div>
+                            <div class="input-with-icon-box">
+                                <span class="material-symbols-rounded input-icon-prefix">wallet</span>
+                                <input type="number" id="full-add-cost" class="form-control-pro" placeholder="0.00" min="0" step="any" oninput="calculateProfitMargin()">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="product-input-label">
+                                <span>Initial Stock</span>
+                            </div>
+                            <div class="input-with-icon-box">
+                                <span class="material-symbols-rounded input-icon-prefix">layers</span>
+                                <input type="number" id="full-add-stock" class="form-control-pro" value="0" min="0" step="any" style="font-weight: 700;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Min Stock Alert -->
+                    <div class="product-input-wrap" style="margin-bottom:14px;">
+                        <div class="product-input-label">
+                            <span>Min Stock Alert</span>
+                        </div>
+                        <div class="input-with-icon-box">
+                            <span class="material-symbols-rounded input-icon-prefix" style="color:#ea580c;">warning</span>
+                            <input type="number" id="full-add-min-stock" class="form-control-pro" value="5" min="1" step="any">
+                        </div>
+                    </div>
+
+                    <!-- Show on Online Store Toggle -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding-top:10px; border-top:1px solid #f1f5f9;">
+                        <span style="font-size:13px; font-weight: 700; color:#0f172a;">Show on Online Store</span>
+                        <label class="ios-toggle-switch">
+                            <input type="checkbox" id="full-add-show-online" checked>
+                            <span class="toggle-switch-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 3. CARD: Batch & Expiry (Perishable Goods) -->
+                <div class="product-form-card">
+                    <div class="product-form-header" style="margin-bottom:8px;">
+                        <div class="product-form-title-wrap">
+                            <div class="product-form-icon-box orange">
+                                <span class="material-symbols-rounded" style="font-size:20px;">timer</span>
+                            </div>
+                            <div>
+                                <div class="product-form-title">Batch & Expiry (Perishable Goods)</div>
+                                <div style="font-size:11px; color:#64748b; font-weight: 600; margin-top:2px;">Track batch code & expiration dates</div>
+                            </div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <label class="ios-toggle-switch">
+                                <input type="checkbox" id="full-add-expiry-toggle" onchange="toggleBatchExpiryInputs(this.checked)">
+                                <span class="toggle-switch-slider"></span>
+                            </label>
+                            <span style="font-size:11.5px; font-weight: 700; color:#0f6dff;">Enabled</span>
+                        </div>
+                    </div>
+
+                    <!-- Batch Number & Expiry Date Row -->
+                    <div id="batch-expiry-fields-row" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;">
+                        <div>
+                            <div class="product-input-label">
+                                <span>Batch Number <span style="font-size:10px; color:#94a3b8;">(Optional)</span></span>
+                            </div>
+                            <div class="input-with-icon-box">
+                                <span class="material-symbols-rounded input-icon-prefix">qr_code</span>
+                                <input type="text" id="full-add-batch" class="form-control-pro" placeholder="e.g. BATCH-2026-A">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="product-input-label">
+                                <span>Expiry Date <span style="font-size:10px; color:#94a3b8;">(Optional)</span></span>
+                            </div>
+                            <div class="input-with-icon-box" onclick="openExpiryDatePickerModal()" style="cursor:pointer;">
+                                <span class="material-symbols-rounded input-icon-prefix" style="color:#0f6dff;">calendar_month</span>
+                                <input type="text" id="full-add-expiry" class="form-control-pro" placeholder="Select date..." readonly style="cursor:pointer; background:#fff;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. CARD: Product Image -->
+                <div class="product-form-card">
+                    <div class="product-form-header">
+                        <div class="product-form-title-wrap">
+                            <div class="product-form-icon-box">
+                                <span class="material-symbols-rounded" style="font-size:20px;">image</span>
+                            </div>
+                            <div class="product-form-title">Product Image</div>
+                        </div>
+                    </div>
+
+                    <!-- Image Upload Dropzone -->
+                    <div class="image-dropzone-box" id="product-img-dropzone">
+                        <div class="image-preview-sq" id="product-img-preview-box">
+                            <span class="material-symbols-rounded" style="font-size:28px;">add_photo_alternate</span>
+                        </div>
+                        <div style="font-size:13px; font-weight: 700; color:#0f172a;">Product image</div>
+                        <div style="font-size:11px; color:#94a3b8; font-weight: 600;">PNG, JPG or WEBP</div>
+
+                        <!-- Upload & Camera Action Buttons -->
+                        <div style="display:flex; gap:8px; margin-top:6px;">
+                            <button type="button" class="btn-form-inline-action" onclick="document.getElementById('product-file-input').click()">
+                                <span class="material-symbols-rounded" style="font-size:15px;">upload</span>
+                                <span>Upload</span>
+                            </button>
+                            <button type="button" class="btn-form-inline-action" onclick="document.getElementById('product-camera-input').click()">
+                                <span class="material-symbols-rounded" style="font-size:15px;">photo_camera</span>
+                                <span>Camera</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <input type="file" id="product-file-input" accept="image/*" style="display:none;" onchange="handleProductImageFile(this)">
+                    <input type="file" id="product-camera-input" accept="image/*" capture="environment" style="display:none;" onchange="handleProductImageFile(this)">
+                    <input type="hidden" id="full-add-image-base64" value="">
+                    <input type="hidden" id="full-add-product-id" value="">
+                </div>
+
+                <!-- Primary Submit Action Button -->
+                <button type="submit" id="btn-full-save-product" class="btn-primary-action-block" style="padding:15px; font-size:15.5px; font-weight: 700; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 8px 24px rgba(15,109,255,0.28);">
+                    <span class="material-symbols-rounded" style="font-size:22px;">save</span>
+                    <span id="btn-full-save-product-text">Save Product to POS Cloud</span>
+                </button>
+
+                <!-- Delete Product Action Button (Visible in Edit Mode) -->
+                <button type="button" id="btn-full-delete-product" class="btn-neutral-outline" style="display:none; width:100%; margin-top:12px; padding:13px; font-size:14px; font-weight:700; border-radius:16px; border:1.5px solid #fecaca; background:#fef2f2; color:#dc2626; align-items:center; justify-content:center; gap:8px;" onclick="confirmDeleteCurrentProduct()">
+                    <span class="material-symbols-rounded" style="font-size:20px; color:#dc2626;">delete</span>
+                    <span>Delete Product from POS</span>
+                </button>
+            </form>
+        </div>
+    </section>
+</div>
+
+<!-- Custom Design Expiry Date Calendar Picker Modal -->
+<div class="app-modal-backdrop-layer" id="modal-expiry-calendar-picker">
+    <div class="app-modal-dialog-box" style="max-width:340px; padding:18px 16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="font-size:15px; font-weight: 700; color:#0f172a; display:flex; align-items:center; gap:6px;">
+                <span class="material-symbols-rounded" style="color:#0f6dff; font-size:20px;">calendar_month</span>
+                <span>Select Expiry Date</span>
+            </div>
+            <button type="button" class="header-action-btn" style="width:30px; height:30px;" onclick="closeDialog('modal-expiry-calendar-picker')">
+                <span class="material-symbols-rounded" style="font-size:18px;">close</span>
+            </button>
+        </div>
+
+        <!-- Month Navigation Row -->
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 4px; background:#f8fafc; border-radius:12px; margin-bottom:12px;">
+            <button type="button" class="header-action-btn" style="width:30px; height:30px;" onclick="prevExpiryCalMonth()">
+                <span class="material-symbols-rounded" style="font-size:16px;">chevron_left</span>
+            </button>
+            <div style="font-size:13.5px; font-weight: 700; color:#0f172a;" id="expiry-cal-month-year">August 2026</div>
+            <button type="button" class="header-action-btn" style="width:30px; height:30px;" onclick="nextExpiryCalMonth()">
+                <span class="material-symbols-rounded" style="font-size:16px;">chevron_right</span>
+            </button>
+        </div>
+
+        <!-- Days of Week Header -->
+        <div style="display:grid; grid-template-columns:repeat(7, 1fr); text-align:center; font-size:11px; font-weight: 700; color:#94a3b8; margin-bottom:6px;">
+            <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+        </div>
+
+        <!-- Days Grid -->
+        <div id="expiry-cal-days-grid" style="display:grid; grid-template-columns:repeat(7, 1fr); gap:4px;"></div>
+
+        <!-- Quick Clear / Today Action -->
+        <div style="display:flex; justify-content:space-between; margin-top:14px; padding-top:10px; border-top:1px solid #f1f5f9;">
+            <button type="button" class="btn-neutral-outline" style="padding:6px 12px; font-size:11.5px; font-weight: 700; border-radius:8px;" onclick="clearExpiryDate()">Clear Date</button>
+            <button type="button" class="btn-primary-action-block" style="padding:6px 14px; font-size:11.5px; font-weight: 700; border-radius:8px; width:auto; margin:0;" onclick="selectExpiryToday()">Set Today</button>
+        </div>
+    </div>
+</div>
+
+<!-- Global Modals & Toast -->
+<div id="app-modal-container"></div>
+<div class="app-toast-container" id="app-toast-container"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/modals.js"></script>
+<script src="../js/router.js"></script>
+<script src="../js/JsBarcode.all.min.js"></script>
+<script src="../js/app.js"></script>
+<script>
+    let expCalDate = new Date();
+    let expCalMonth = expCalDate.getMonth();
+    let expCalYear = expCalDate.getFullYear();
+    let selectedExpiryIso = '';
+
+    function openExpiryDatePickerModal() {
+        renderExpiryCalendar();
+        openDialog('modal-expiry-calendar-picker');
+    }
+
+    function renderExpiryCalendar() {
+        const monthYearEl = document.getElementById('expiry-cal-month-year');
+        const gridEl = document.getElementById('expiry-cal-days-grid');
+        if (!monthYearEl || !gridEl) return;
+
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        monthYearEl.textContent = `${monthNames[expCalMonth]} ${expCalYear}`;
+
+        gridEl.innerHTML = '';
+        const firstDay = new Date(expCalYear, expCalMonth, 1).getDay();
+        const daysInMonth = new Date(expCalYear, expCalMonth + 1, 0).getDate();
+
+        for (let i = 0; i < firstDay; i++) {
+            const emptyCell = document.createElement('div');
+            gridEl.appendChild(emptyCell);
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${expCalYear}-${String(expCalMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'cal-day-cell';
+            btn.textContent = d;
+
+            if (dateStr === todayStr) btn.classList.add('today');
+            if (dateStr === selectedExpiryIso) btn.classList.add('selected');
+
+            btn.onclick = () => {
+                selectedExpiryIso = dateStr;
+                const inputEl = document.getElementById('full-add-expiry');
+                if (inputEl) {
+                    inputEl.value = dateStr;
+                }
+                closeDialog('modal-expiry-calendar-picker');
+                showAppToast(`Expiry Date set: ${dateStr}`, 'success');
+            };
+
+            gridEl.appendChild(btn);
+        }
+    }
+
+    function prevExpiryCalMonth() {
+        expCalMonth--;
+        if (expCalMonth < 0) {
+            expCalMonth = 11;
+            expCalYear--;
+        }
+        renderExpiryCalendar();
+    }
+
+    function nextExpiryCalMonth() {
+        expCalMonth++;
+        if (expCalMonth > 11) {
+            expCalMonth = 0;
+            expCalYear++;
+        }
+        renderExpiryCalendar();
+    }
+
+    function clearExpiryDate() {
+        selectedExpiryIso = '';
+        const inputEl = document.getElementById('full-add-expiry');
+        if (inputEl) inputEl.value = '';
+        closeDialog('modal-expiry-calendar-picker');
+    }
+
+    function selectExpiryToday() {
+        const todayStr = new Date().toISOString().split('T')[0];
+        selectedExpiryIso = todayStr;
+        const inputEl = document.getElementById('full-add-expiry');
+        if (inputEl) inputEl.value = todayStr;
+        closeDialog('modal-expiry-calendar-picker');
+        showAppToast(`Expiry Date set: ${todayStr}`, 'success');
+    }
+
+    function toggleBatchExpiryInputs(enabled) {
+        const row = document.getElementById('batch-expiry-fields-row');
+        if (row) {
+            row.style.opacity = enabled ? '1' : '0.4';
+            row.style.pointerEvents = enabled ? 'auto' : 'none';
+        }
+    }
+
+    function handleProductImageFile(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const base64 = e.target.result;
+            const hiddenEl = document.getElementById('full-add-image-base64');
+            const previewBox = document.getElementById('product-img-preview-box');
+            if (hiddenEl) hiddenEl.value = base64;
+            if (previewBox) {
+                previewBox.innerHTML = `<img src="${base64}" alt="Product" style="width:100%; height:100%; object-fit:cover; border-radius:14px;">`;
+            }
+            showAppToast('Image loaded', 'success');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const barcodeParam = urlParams.get('barcode');
+        if (barcodeParam) {
+            const barcodeInput = document.getElementById('full-add-barcode');
+            if (barcodeInput) {
+                barcodeInput.value = barcodeParam;
+                checkBarcodeLookup(barcodeParam);
+            }
+        }
+    });
+</script>
+</body>
+</html>

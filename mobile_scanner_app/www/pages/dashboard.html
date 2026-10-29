@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f6dff">
+    <title>DevAltum POS - Dashboard</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0">
+    <link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+
+<div class="app-container">
+    <section class="view-screen" id="view-dashboard">
+        <!-- Top App Header -->
+        <header class="app-header">
+            <button type="button" class="header-action-btn" onclick="openSidebarDrawer()">
+                <span class="material-symbols-rounded">menu</span>
+            </button>
+            <div class="header-title-text" style="font-size:18px; font-weight: 700;">Dashboard</div>
+            <div style="width:38px;"></div>
+        </header>
+
+        <!-- Scrollable Dashboard Content -->
+        <div class="view-scroll-content" style="padding:14px 14px 20px 14px;">
+            <!-- 1. POS Connected Navy Banner Card -->
+            <div class="dash-pos-connected-card">
+                <div class="dash-connected-top-row">
+                    <div style="display:flex; align-items:center; gap:12px; min-width:0; flex:1; overflow:hidden;">
+                        <div class="dash-terminal-icon-box" style="padding:2px; overflow:hidden; background:#ffffff; border: 1.5px solid rgba(255,255,255,0.4); box-shadow: 0 4px 12px rgba(0,0,0,0.15); flex-shrink:0;">
+                            <img src="../assets/logo.png" alt="DevAltum Logo" style="width:100%; height:100%; object-fit:contain; border-radius:10px; display:block;">
+                        </div>
+                        <div style="min-width:0; flex:1; overflow:hidden;">
+                            <div style="font-size:16px; font-weight: 700; letter-spacing:0.1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">POS Connected</div>
+                            <div style="font-size:12.5px; color:#93c5fd; font-weight: 700; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; display:block;" id="dash-store-name">Usman Mobile Center</div>
+                        </div>
+                    </div>
+                    <div class="dash-pos-status-pill" style="flex-shrink:0; margin-left:8px;">
+                        <span style="font-size:10px;">&bull;</span>
+                        <span>Connected</span>
+                    </div>
+                </div>
+
+                <div class="dash-connected-bottom-row">
+                    <div>
+                        <div style="font-size:11.5px; color:#93c5fd; font-weight: 600;">
+                            Terminal ID: <strong style="color:#fff;" id="dash-terminal-id">StarPOS-02</strong>
+                        </div>
+                        <div style="font-size:11px; color:#bfdbfe; margin-top:3px;" id="dash-connected-time">
+                            Connected At: 09:37 AM, 27 Aug 2026
+                        </div>
+                    </div>
+                    <button type="button" class="btn-dash-logout" onclick="openLogoutModal()">
+                        Logout
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. Quick Actions 4-Grid Section -->
+            <div class="quick-actions-section-title">Quick Actions</div>
+            <div class="quick-actions-grid">
+                <div class="quick-action-item" onclick="navigateTo('cart')">
+                    <div class="quick-action-icon-box qa-cart">
+                        <span class="material-symbols-rounded" style="font-size:22px;">shopping_bag</span>
+                    </div>
+                    <span class="quick-action-label">Cart</span>
+                </div>
+                <div class="quick-action-item" onclick="navigateTo('customers')">
+                    <div class="quick-action-icon-box qa-customers">
+                        <span class="material-symbols-rounded" style="font-size:22px;">group</span>
+                    </div>
+                    <span class="quick-action-label">Customers</span>
+                </div>
+                <div class="quick-action-item" onclick="navigateTo('sales')">
+                    <div class="quick-action-icon-box qa-sales">
+                        <span class="material-symbols-rounded" style="font-size:22px;">receipt_long</span>
+                    </div>
+                    <span class="quick-action-label">Sales History</span>
+                </div>
+                <div class="quick-action-item" onclick="navigateTo('settings')">
+                    <div class="quick-action-icon-box qa-settings">
+                        <span class="material-symbols-rounded" style="font-size:22px;">settings</span>
+                    </div>
+                    <span class="quick-action-label">Settings</span>
+                </div>
+            </div>
+
+            <!-- 3. Today's Summary Card Container -->
+            <div class="summary-container-card">
+                <!-- Summary Header -->
+                <div class="summary-header-row">
+                    <div class="summary-title-text" id="summary-section-heading">Today's Summary</div>
+                    <div class="summary-live-pill">
+                        <span style="font-size:10px;">&bull;</span>
+                        <span>Live</span>
+                    </div>
+                </div>
+
+                <!-- Filter Chips Row -->
+                <div style="display:flex; gap:6px; overflow-x:auto; margin-bottom:14px; padding-bottom:4px;" class="period-filter-chips-row" style="padding:0; background:transparent; border:none;">
+                    <div class="period-chip active" data-period="today" onclick="switchDashboardPeriod('today')">Today</div>
+                    <div class="period-chip" data-period="yesterday" onclick="switchDashboardPeriod('yesterday')">Yesterday</div>
+                    <div class="period-chip" data-period="week" onclick="switchDashboardPeriod('week')">This Week</div>
+                    <div class="period-chip" data-period="month" onclick="switchDashboardPeriod('month')">This Month</div>
+                    <div class="period-chip" data-period="custom" onclick="openDashboardCalendarModal()">Custom</div>
+                </div>
+
+                <!-- Net Profit Emerald Hero Card -->
+                <!-- Net Profit Luxury Midnight Royal Card -->
+                <div class="net-profit-card-modern">
+                    <div>
+                        <div class="net-profit-title">NET PROFIT</div>
+                        <div class="net-profit-val" id="dash-net-profit">Rs 0</div>
+                        <div class="net-profit-sub">Sales &minus; Expenses &minus; Returns &minus; Credit Remaining</div>
+                    </div>
+                    <div class="net-profit-icon-badge">
+                        <span class="material-symbols-rounded" style="font-size:26px;">trending_up</span>
+                    </div>
+                </div>
+
+                <!-- 2x3 Thematic Metric Cards Grid - Exact Layout -->
+                <div class="dashboard-metrics-grid">
+                    <!-- Total Sales -->
+                    <div class="metric-summary-box metric-card-sales">
+                        <div class="metric-card-icon-box">
+                            <span class="material-symbols-rounded" style="font-size:22px;">shopping_cart</span>
+                        </div>
+                        <div class="metric-card-text-col">
+                            <div class="metric-card-label">Total Sales</div>
+                            <div class="metric-card-value" id="dash-sales-value">Rs 0</div>
+                        </div>
+                    </div>
+
+                    <!-- Invoices -->
+                    <div class="metric-summary-box metric-card-invoices">
+                        <div class="metric-card-icon-box">
+                            <span class="material-symbols-rounded" style="font-size:22px;">description</span>
+                        </div>
+                        <div class="metric-card-text-col">
+                            <div class="metric-card-label">Invoices</div>
+                            <div class="metric-card-value" id="dash-txns-value">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Cash Payment -->
+                    <div class="metric-summary-box metric-card-cash">
+                        <div class="metric-card-icon-box">
+                            <span class="material-symbols-rounded" style="font-size:22px;">payments</span>
+                        </div>
+                        <div class="metric-card-text-col">
+                            <div class="metric-card-label">Cash Payment</div>
+                            <div class="metric-card-value" id="dash-cash-value">Rs 0</div>
+                        </div>
+                    </div>
+
+                    <!-- Online Payment -->
+                    <div class="metric-summary-box metric-card-online">
+                        <div class="metric-card-icon-box">
+                            <span class="material-symbols-rounded" style="font-size:22px;">credit_card</span>
+                        </div>
+                        <div class="metric-card-text-col">
+                            <div class="metric-card-label">Online Payment</div>
+                            <div class="metric-card-value" id="dash-online-value">Rs 0</div>
+                        </div>
+                    </div>
+
+                    <!-- Credit (Udhar) -->
+                    <div class="metric-summary-box metric-card-credit-udhar">
+                        <div class="metric-card-icon-box">
+                            <span class="material-symbols-rounded" style="font-size:22px;">credit_card</span>
+                        </div>
+                        <div class="metric-card-text-col">
+                            <div class="metric-card-label">Credit (Udhar)</div>
+                            <div class="metric-card-value" id="dash-credit-given-value">Rs 0</div>
+                        </div>
+                    </div>
+
+                    <!-- Credit Pay -->
+                    <div class="metric-summary-box metric-card-credit-pay">
+                        <div class="metric-card-icon-box">
+                            <span class="material-symbols-rounded" style="font-size:22px;">swap_horiz</span>
+                        </div>
+                        <div class="metric-card-text-col">
+                            <div class="metric-card-label">Credit Pay</div>
+                            <div class="metric-card-value" id="dash-credit-rec-value">Rs 0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Branding -->
+            <div style="text-align:center; padding:10px 0 16px 0; color:#94a3b8; font-size:11.5px; font-weight:700;">
+                <span>Powered by </span>
+                <strong style="color:#0f6dff; font-weight: 700;">DevAltum</strong>
+            </div>
+        </div>
+
+        <!-- 5-Tab Floating Bottom Navigation Bar -->
+        <nav class="app-bottom-nav">
+            <button type="button" class="bottom-tab-link active" onclick="navigateTo('dashboard')">
+                <span class="material-symbols-rounded">home</span>
+                <span>Home</span>
+            </button>
+            <button type="button" class="bottom-tab-link" onclick="navigateTo('sales')">
+                <span class="material-symbols-rounded">receipt_long</span>
+                <span>Sales</span>
+            </button>
+            <div class="nav-scanner-fab-wrap">
+                <button type="button" class="nav-scanner-fab" onclick="navigateTo('scanner')" title="Scan Barcode">
+                    <span class="material-symbols-rounded" style="font-size:26px;">qr_code_scanner</span>
+                </button>
+            </div>
+            <button type="button" class="bottom-tab-link" onclick="navigateTo('products')">
+                <span class="material-symbols-rounded">inventory_2</span>
+                <span>Products</span>
+            </button>
+            <button type="button" class="bottom-tab-link" onclick="navigateTo('profile')">
+                <span class="material-symbols-rounded">person</span>
+                <span>Profile</span>
+            </button>
+        </nav>
+    </section>
+</div>
+
+<!-- Global Modals & Toast -->
+<div id="app-modal-container"></div>
+<div class="app-toast-container" id="app-toast-container"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/modals.js"></script>
+<script src="../js/router.js"></script>
+<script src="../js/app.js"></script>
+<script>
+    // Fetch and bind live dashboard metrics on load + 7-second background live sync
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof fetchDashboardData === 'function') {
+            fetchDashboardData();
+        }
+        setInterval(() => {
+            if (typeof fetchDashboardData === 'function') {
+                fetchDashboardData();
+            }
+        }, 7000);
+    });
+</script>
+</body>
+</html>

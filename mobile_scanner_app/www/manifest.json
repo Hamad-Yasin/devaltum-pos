@@ -1,0 +1,17 @@
+{
+  "name": "DevAltum POS Companion",
+  "short_name": "DevAltum POS",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f0f6ff",
+  "theme_color": "#0f6dff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "assets/logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

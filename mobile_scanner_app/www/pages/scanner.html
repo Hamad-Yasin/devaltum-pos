@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <title>DevAltum POS - Ultra HD AR Scanner</title>
+    <link rel="stylesheet" href="../css/app.css">
+</head>
+<body style="background:#000000; overflow:hidden;">
+
+<div class="app-container" style="background:#000000;">
+    <section class="view-screen no-bottom-nav" id="view-scanner" style="padding:0; background:#000000;">
+        <div class="scanner-ultra-viewport">
+            
+            <!-- 1. Full-Screen Edge-to-Edge HD Camera Feed -->
+            <video id="camera-live-feed" class="scanner-camera-surface" playsinline webkit-playsinline muted autoplay></video>
+
+            <!-- 2. Real-Time Dynamic AR Tracking Canvas -->
+            <canvas id="ar-tracking-overlay" class="scanner-ar-canvas"></canvas>
+
+            <!-- 3. Ambient Low-Light Hint (Auto-shown if dark) -->
+            <div id="ambient-torch-hint" class="scanner-ambient-pill" style="display:none;" onclick="toggleTorch()">
+                <span class="material-symbols-rounded" style="font-size:16px;">lightbulb</span>
+                <span>Low Light &bull; Tap for Flash</span>
+            </div>
+
+            <!-- 4. Top Glassmorphism HUD Bar -->
+            <div class="scanner-hud-top">
+                <button type="button" class="scanner-hud-pill-btn" onclick="navigateTo('dashboard')" title="Back to Dashboard">
+                    <span class="material-symbols-rounded" style="font-size:20px;">arrow_back_ios_new</span>
+                </button>
+
+                <div class="scanner-status-center">
+                    <div class="scanner-engine-pill">
+                        <span class="scanner-live-dot"></span>
+                        <span id="scanner-hud-title">Live 60 FPS HD</span>
+                    </div>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button type="button" class="scanner-hud-pill-btn" id="btn-camera-torch" onclick="toggleTorch()" title="Flashlight Torch">
+                        <span class="material-symbols-rounded" style="font-size:20px;">flash_on</span>
+                    </button>
+                    <button type="button" class="scanner-hud-pill-btn" onclick="flipCamera()" title="Switch Camera">
+                        <span class="material-symbols-rounded" style="font-size:20px;">cameraswitch</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 5. Floating Zoom Bar (1x - 3x) -->
+            <div class="scanner-zoom-deck" id="scanner-zoom-controls">
+                <button type="button" class="zoom-step-btn active" onclick="setZoomLevel(1, this)">1x</button>
+                <button type="button" class="zoom-step-btn" onclick="setZoomLevel(2, this)">2x</button>
+                <button type="button" class="zoom-step-btn" onclick="setZoomLevel(3, this)">3x</button>
+            </div>
+
+            <!-- Dynamic Floating Cart Action Button (Checkout Mode Only) -->
+            <div class="scanner-floating-cart-pill" id="scanner-floating-cart-pill" onclick="navigateTo('cart')" title="View Checkout Cart">
+                <div class="floating-cart-badge-icon">
+                    <span class="material-symbols-rounded" style="font-size:20px;">shopping_cart</span>
+                    <span class="floating-cart-count-badge" id="floating-cart-count">1</span>
+                </div>
+                <div class="floating-cart-meta">
+                    <span class="floating-cart-title" id="floating-cart-title">Checkout Cart</span>
+                    <span class="floating-cart-total" id="floating-cart-total">Rs 0</span>
+                </div>
+                <span class="material-symbols-rounded floating-cart-arrow" style="font-size:16px;">arrow_forward_ios</span>
+            </div>
+
+            <!-- 6. Bottom Floating Glass Deck (Manual keyboard removed) -->
+            <div class="scanner-hud-bottom" style="justify-content:center; gap:32px;">
+                <button type="button" class="scanner-hud-pill-btn" style="width:50px; height:50px;" onclick="openSoundTonePickerModal()" title="Sound Tone Settings">
+                    <span class="material-symbols-rounded" style="font-size:24px;">volume_up</span>
+                </button>
+
+                <div class="scanner-shutter-aura" onclick="triggerCameraCapture()" title="Snapshot Scan">
+                    <div class="scanner-shutter-core">
+                        <span class="material-symbols-rounded" style="font-size:30px;">qr_code_scanner</span>
+                    </div>
+                </div>
+
+                <button type="button" class="scanner-hud-pill-btn" style="width:50px; height:50px;" onclick="openVibrationPickerModal()" title="Haptic Feedback Settings">
+                    <span class="material-symbols-rounded" style="font-size:24px;">vibration</span>
+                </button>
+            </div>
+
+            <!-- 7. Interactive Slide-Up Product & Scan Result Bottom Sheet -->
+            <div class="scanner-bottom-sheet" id="scanner-bottom-sheet">
+                <div class="sheet-handle-pill"></div>
+                <div class="sheet-product-row">
+                    <div class="sheet-product-icon-box" id="sheet-res-icon-box">
+                        <span class="material-symbols-rounded" style="font-size:26px;" id="sheet-res-icon">check_circle</span>
+                    </div>
+                    <div style="flex:1; overflow:hidden;">
+                        <div class="sheet-product-title" id="sheet-res-title">Product Scanned</div>
+                        <div class="sheet-product-sub" id="sheet-res-code">0000000000000</div>
+                    </div>
+                    <div id="sheet-res-price-wrap" style="text-align:right;">
+                        <div style="font-size:16px; font-weight:800; color:#10b981;" id="sheet-res-price">Rs 0</div>
+                        <div style="font-size:11px; color:#94a3b8;" id="sheet-res-stock">In Stock</div>
+                    </div>
+                </div>
+
+                <div class="sheet-actions-grid" id="sheet-actions-container">
+                    <button type="button" class="btn-primary-action-block" style="flex:1; padding:12px; font-size:13px; margin:0;" onclick="dismissBottomSheet()">
+                        <span>Continue Scanning</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </section>
+</div>
+
+<!-- Global Modals & Toast Containers -->
+<div id="app-modal-container"></div>
+<div class="app-toast-container" id="app-toast-container"></div>
+
+<script src="../js/html5-qrcode.min.js"></script>
+<script src="../js/zxing.min.js"></script>
+<script src="../js/jsqr.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/modals.js"></script>
+<script src="../js/scanner.js"></script>
+<script src="../js/router.js"></script>
+<script src="../js/app.js"></script>
+<script>
+    // Automatically start ultra HD scanner on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof startCameraEngine === 'function') {
+            startCameraEngine();
+        }
+    });
+</script>
+</body>
+</html>

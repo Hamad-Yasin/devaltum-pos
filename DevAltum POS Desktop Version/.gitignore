@@ -1,0 +1,9 @@
+node_modules/
+dist/
+runtime/
+application/
+installer/default_data/
+*.log
+.DS_Store
+Thumbs.db
+

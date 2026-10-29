@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f6dff">
+    <title>DevAltum POS - Settings</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+    <link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+
+<div class="app-container">
+    <section class="view-screen" id="view-settings">
+        <!-- Top App Header -->
+        <header class="app-header">
+            <button type="button" class="header-action-btn" onclick="navigateTo('dashboard')" title="Back to Dashboard">
+                <span class="material-symbols-rounded">arrow_back_ios_new</span>
+            </button>
+            <div style="text-align:center;">
+                <div class="header-title-text" style="font-size:17.5px; font-weight: 700; color:#0f172a; line-height:1.2;">Settings</div>
+                <div style="font-size:11px; font-weight: 600; color:#64748b;">Device & App Preferences</div>
+            </div>
+            <button type="button" class="header-action-btn" onclick="openSidebarDrawer()" title="Menu">
+                <span class="material-symbols-rounded">menu</span>
+            </button>
+        </header>
+
+        <!-- Scrollable Settings Content -->
+        <div class="view-scroll-content" style="padding:12px 14px 24px 14px;">
+            <!-- Hero Terminal Status Card -->
+            <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-radius: 18px; padding: 14px 16px; color: #ffffff; margin-bottom: 14px; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12); display: flex; justify-content: space-between; align-items: center;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:42px; height:42px; border-radius:12px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); display:grid; place-items:center; flex-shrink:0;">
+                        <span class="material-symbols-rounded" style="font-size:22px; color:#38bdf8;">point_of_sale</span>
+                    </div>
+                    <div>
+                        <div style="font-size:14px; font-weight:700; color:#ffffff;" id="settings-hero-store-name">DevAltum POS Store</div>
+                        <div style="font-size:11.5px; color:#94a3b8; font-weight:600; margin-top:2px;" id="settings-hero-terminal-id">Terminal: StarPOS-01</div>
+                    </div>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+                    <span style="display:inline-flex; align-items:center; gap:5px; background:rgba(16,185,129,0.2); border:1px solid rgba(16,185,129,0.4); color:#4ade80; padding:3px 8px; border-radius:999px; font-size:10.5px; font-weight:700;">
+                        <span style="width:6px; height:6px; border-radius:50%; background:#4ade80;"></span>
+                        Live Online
+                    </span>
+                </div>
+            </div>
+
+            <!-- 1. Sound & Haptic Feedback Section -->
+            <div class="settings-section-title">
+                <span class="material-symbols-rounded" style="font-size:16px; color:#8b5cf6;">volume_up</span>
+                <span>Sound & Haptic Feedback</span>
+            </div>
+            <div class="settings-card-stack">
+                <!-- Sound Toggle -->
+                <div class="settings-item-card">
+                    <div class="settings-item-left">
+                        <div class="settings-icon-badge purple">
+                            <span class="material-symbols-rounded" style="font-size:18px;">volume_up</span>
+                        </div>
+                        <div>
+                            <div class="settings-item-title">Sound (Scan Beep)</div>
+                            <div class="settings-item-sub">Play audio chime when barcode is scanned</div>
+                        </div>
+                    </div>
+                    <label class="ios-toggle-switch">
+                        <input type="checkbox" id="setting-sound-toggle" checked>
+                        <span class="toggle-switch-slider"></span>
+                    </label>
+                </div>
+
+                <!-- Selectable Sound Tone -->
+                <div class="settings-item-card clickable" onclick="openSoundTonePickerModal()">
+                    <div class="settings-item-left">
+                        <div class="settings-icon-badge blue">
+                            <span class="material-symbols-rounded" style="font-size:18px;">music_note</span>
+                        </div>
+                        <div>
+                            <div class="settings-item-title">Scan Sound Tone</div>
+                            <div class="settings-item-sub">5 rich synthesized tones available</div>
+                        </div>
+                    </div>
+                    <div class="settings-item-right" id="settings-current-tone-text">
+                        <span class="settings-pill-badge" style="background:#f1f5f9; color:#0f172a; border-color:#e2e8f0;">
+                            <span>Crystal Chime</span>
+                            <span class="chevron" style="font-size:14px; margin-left:2px;">&gt;</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Vibration Toggle -->
+                <div class="settings-item-card">
+                    <div class="settings-item-left">
+                        <div class="settings-icon-badge amber">
+                            <span class="material-symbols-rounded" style="font-size:18px;">vibration</span>
+                        </div>
+                        <div>
+                            <div class="settings-item-title">Vibration (Haptics)</div>
+                            <div class="settings-item-sub">Real-time mobile tactile confirmation</div>
+                        </div>
+                    </div>
+                    <label class="ios-toggle-switch">
+                        <input type="checkbox" id="setting-vibration-toggle" checked>
+                        <span class="toggle-switch-slider"></span>
+                    </label>
+                </div>
+
+                <!-- Vibration Style / Pattern Picker -->
+                <div class="settings-item-card clickable" onclick="openVibrationPickerModal()">
+                    <div class="settings-item-left">
+                        <div class="settings-icon-badge amber">
+                            <span class="material-symbols-rounded" style="font-size:18px;">touch_app</span>
+                        </div>
+                        <div>
+                            <div class="settings-item-title">Haptic Feedback Style</div>
+                            <div class="settings-item-sub">Tap, Pulse, Double Tap, or Buzz</div>
+                        </div>
+                    </div>
+                    <div class="settings-item-right" id="settings-current-vib-text">
+                        <span class="settings-pill-badge" style="background:#f1f5f9; color:#0f172a; border-color:#e2e8f0;">
+                            <span>Crisp Tap</span>
+                            <span class="chevron" style="font-size:14px; margin-left:2px;">&gt;</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- In-App Notifications Toggle -->
+                <div class="settings-item-card">
+                    <div class="settings-item-left">
+                        <div class="settings-icon-badge rose">
+                            <span class="material-symbols-rounded" style="font-size:18px;">notifications_active</span>
+                        </div>
+                        <div>
+                            <div class="settings-item-title">Notifications</div>
+                            <div class="settings-item-sub">Alert popups on scan status & sync</div>
+                        </div>
+                    </div>
+                    <label class="ios-toggle-switch">
+                        <input type="checkbox" id="setting-notifications-toggle" checked>
+                        <span class="toggle-switch-slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 2. Regional & Currency Section -->
+            <div class="settings-section-title">
+                <span class="material-symbols-rounded" style="font-size:16px; color:#10b981;">payments</span>
+                <span>Regional & Currency</span>
+            </div>
+            <div class="settings-card-stack">
+                <div class="settings-item-card clickable" onclick="openCurrencyPickerModal()">
+                    <div class="settings-item-left">
+                        <div class="settings-icon-badge emerald">
+                            <span class="material-symbols-rounded" style="font-size:18px;">currency_exchange</span>
+                        </div>
+                        <div>
+                            <div class="settings-item-title">Currency & Symbol</div>
+                            <div class="settings-item-sub">Default formatting for prices</div>
+                        </div>
+                    </div>
+                    <div class="settings-item-right" id="settings-current-currency-text">
+                        <span class="settings-pill-badge" style="background:#eff6ff; color:#0f6dff; border-color:#bfdbfe; font-size:13px; font-weight:700; padding:4px 12px;">
+                            <span>Rs</span>
+                            <span class="chevron" style="font-size:14px; margin-left:4px;">&gt;</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Server & Network Section -->
+            <div class="settings-section-title">
+                <span class="material-symbols-rounded" style="font-size:16px; color:#0f6dff;">dns</span>
+                <span>Server & Network</span>
+            </div>
+            <div class="settings-card-stack">
+                <div class="settings-item-card clickable" onclick="promptConfigureServer()">
+                    <div class="settings-item-left">
+                        <div class="settings-icon-badge blue">
+                            <span class="material-symbols-rounded" style="font-size:18px;">dns</span>
+                        </div>
+                        <div>
+                            <div class="settings-item-title">Server Host URL</div>
+                            <div class="settings-item-sub">Main desktop POS IP or cloud domain</div>
+                        </div>
+                    </div>
+                    <div class="settings-item-right" id="settings-current-server-text">
+                        <span class="settings-pill-badge" style="background:#ecfdf5; color:#059669; border-color:#a7f3d0;">
+                            <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#10b981; margin-right:2px;"></span>
+                            Configure &gt;
+                        </span>
+                    </div>
+                </div>
+
+                <div class="settings-item-card clickable" onclick="openBackupModal()">
+                    <div class="settings-item-left">
+                        <div class="settings-icon-badge cyan">
+                            <span class="material-symbols-rounded" style="font-size:18px;">cloud_sync</span>
+                        </div>
+                        <div>
+                            <div class="settings-item-title">Cache & Data Storage</div>
+                            <div class="settings-item-sub">Synchronize catalog or clear offline cache</div>
+                        </div>
+                    </div>
+                    <div class="settings-item-right gray">
+                        <span class="chevron">&gt;</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Support & Information Section -->
+            <div class="settings-section-title">
+                <span class="material-symbols-rounded" style="font-size:16px; color:#64748b;">info</span>
+                <span>Support & About</span>
+            </div>
+            <div class="settings-card-stack">
+                <div class="settings-item-card clickable" onclick="openHelpCenterModal()">
+                    <div class="settings-item-left">
+                        <div class="settings-icon-badge slate">
+                            <span class="material-symbols-rounded" style="font-size:18px;">support_agent</span>
+                        </div>
+                        <div>
+                            <div class="settings-item-title">Help Center</div>
+                            <div class="settings-item-sub">24/7 Helpline & WhatsApp support</div>
+                        </div>
+                    </div>
+                    <div class="settings-item-right gray">
+                        <span class="chevron">&gt;</span>
+                    </div>
+                </div>
+                <div class="settings-item-card clickable" onclick="openAboutAppModal()">
+                    <div class="settings-item-left">
+                        <div class="settings-icon-badge blue">
+                            <span class="material-symbols-rounded" style="font-size:18px;">info</span>
+                        </div>
+                        <div>
+                            <div class="settings-item-title">About DevAltum POS</div>
+                            <div class="settings-item-sub">Enterprise Scanner Engine</div>
+                        </div>
+                    </div>
+                    <div class="settings-item-right gray">
+                        <span class="settings-pill-badge" style="background:#eff6ff; color:#0f6dff; border-color:#bfdbfe; font-size:11px;">
+                            v2.0 Pro &gt;
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Branding -->
+            <div style="text-align:center; padding:24px 0 16px 0; color:#94a3b8; font-size:11.5px; font-weight:600;">
+                <div>DevAltum POS Enterprise Companion</div>
+                <div style="margin-top:2px; font-size:10.5px; color:#cbd5e1;">Version 2.0.4 • Build 2026.8</div>
+            </div>
+        </div>
+
+        <!-- 5-Tab Floating Bottom Navigation Bar -->
+        <nav class="app-bottom-nav">
+            <button type="button" class="bottom-tab-link" onclick="navigateTo('dashboard')">
+                <span class="material-symbols-rounded">home</span>
+                <span>Home</span>
+            </button>
+            <button type="button" class="bottom-tab-link" onclick="navigateTo('sales')">
+                <span class="material-symbols-rounded">receipt_long</span>
+                <span>Sales</span>
+            </button>
+            <div class="nav-scanner-fab-wrap">
+                <button type="button" class="nav-scanner-fab" onclick="navigateTo('scanner')" title="Scan Barcode">
+                    <span class="material-symbols-rounded" style="font-size:26px;">qr_code_scanner</span>
+                </button>
+            </div>
+            <button type="button" class="bottom-tab-link" onclick="navigateTo('products')">
+                <span class="material-symbols-rounded">inventory_2</span>
+                <span>Products</span>
+            </button>
+            <button type="button" class="bottom-tab-link active" onclick="navigateTo('settings')">
+                <span class="material-symbols-rounded">settings</span>
+                <span>Settings</span>
+            </button>
+        </nav>
+    </section>
+</div>
+
+<!-- Global Modals & Toast -->
+<div id="app-modal-container"></div>
+<div class="app-toast-container" id="app-toast-container"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/modals.js"></script>
+<script src="../js/router.js"></script>
+<script src="../js/app.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof initSettingsUI === 'function') {
+            initSettingsUI();
+        }
+    });
+</script>
+</body>
+</html>

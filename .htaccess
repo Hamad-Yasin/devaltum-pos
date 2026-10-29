@@ -1,0 +1,18 @@
+DirectoryIndex index.php public/index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 1. If physical file exists directly, serve it
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # 2. Direct rewrite of static files to public/ directory
+    RewriteRule ^(assets/.*)$ public/$1 [L,QSA]
+    RewriteRule ^(uploads/.*)$ public/$1 [L,QSA]
+    RewriteRule ^(manifest\.json|sw\.js|offline\.html|favicon\.ico)$ public/$1 [L,QSA]
+
+    # 3. Route everything else through public/index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ public/index.php?url=$1 [QSA,L]
+</IfModule>

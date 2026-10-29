@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#16a34a">
+    <title>DevAltum POS - Connected Successfully</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0">
+    <link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+
+<div class="app-container">
+    <section class="view-screen no-bottom-nav" id="view-connected-success">
+        <div class="connect-view-content" style="justify-content:center; padding:20px;">
+            <div class="success-checkmark-circle">
+                <span class="material-symbols-rounded" style="font-size: 46px;">check</span>
+            </div>
+
+            <h2 class="connect-heading-title" style="margin-top: 14px;">Connected Successfully!</h2>
+            <p class="connect-guide-text">Your mobile scanner is paired with <strong id="success-store-name" style="color:#0f172a;">POS Store</strong></p>
+
+            <div class="connection-table-card" style="width:100%; margin:20px 0;">
+                <div style="font-size: 13px; font-weight: 700; margin-bottom: 10px; color: #0f172a;">Connection Details</div>
+                <div class="table-row-item">
+                    <span class="table-row-label">Terminal Name</span>
+                    <span class="table-row-val" id="detail-terminal-name">DevAltum POS</span>
+                </div>
+                <div class="table-row-item">
+                    <span class="table-row-label">Terminal ID</span>
+                    <span class="table-row-val" id="detail-terminal-id">StarPOS-01</span>
+                </div>
+                <div class="table-row-item">
+                    <span class="table-row-label">Connected At</span>
+                    <span class="table-row-val" id="detail-connected-at">Just now</span>
+                </div>
+                <div class="table-row-item">
+                    <span class="table-row-label">Status</span>
+                    <span class="table-row-val" style="color: #16a34a; font-weight: 700;">• Online</span>
+                </div>
+            </div>
+
+            <button type="button" class="btn-primary-action-block" style="margin-bottom:0;" onclick="navigateTo('dashboard')">
+                <span>Go to Dashboard</span>
+                <span class="material-symbols-rounded" style="font-size:18px;">arrow_forward</span>
+            </button>
+        </div>
+    </section>
+</div>
+
+<!-- Modal & Toast Containers -->
+<div id="app-modal-container"></div>
+<div class="app-toast-container" id="app-toast-container"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/modals.js"></script>
+<script src="../js/router.js"></script>
+<script src="../js/app.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const store = localStorage.getItem('pos_scanner_store');
+        const term = localStorage.getItem('pos_scanner_terminal_id');
+        const time = localStorage.getItem('pos_scanner_connected_at');
+        if (store) {
+            const sEl = document.getElementById('success-store-name');
+            const tName = document.getElementById('detail-terminal-name');
+            if (sEl) sEl.textContent = store;
+            if (tName) tName.textContent = store;
+        }
+        if (term) {
+            const tEl = document.getElementById('detail-terminal-id');
+            if (tEl) tEl.textContent = term;
+        }
+        if (time) {
+            const timeEl = document.getElementById('detail-connected-at');
+            if (timeEl) timeEl.textContent = time;
+        }
+    });
+</script>
+</body>
+</html>

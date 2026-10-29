@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f6dff">
+    <title>DevAltum POS Companion</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <link rel="apple-touch-icon" href="assets/logo.png">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0">
+    <link rel="stylesheet" href="css/app.css">
+    <script>
+        // Check saved session & route immediately to appropriate standalone page
+        const savedToken = localStorage.getItem('pos_scanner_token');
+        const savedCode = localStorage.getItem('pos_scanner_code');
+        if (savedToken && savedCode) {
+            window.location.replace('pages/dashboard.html');
+        } else {
+            window.location.replace('pages/welcome.html');
+        }
+    </script>
+</head>
+<body>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; gap:16px; background:#f8fafc; text-align:center;">
+        <img src="assets/logo.png" alt="DevAltum" style="width:72px; height:72px; object-fit:contain;">
+        <div style="font-size:14px; font-weight: 700; color:#0f6dff;">Opening DevAltum POS...</div>
+    </div>
+</body>
+</html>

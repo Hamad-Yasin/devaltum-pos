@@ -1,0 +1,19 @@
+{
+  "productName": "DevAltum POS",
+  "appId": "com.devaltum.pos.desktop",
+  "version": "1.0.0",
+  "company": "DevAltum Technologies",
+  "copyright": "Copyright © 2026 DevAltum Technologies",
+  "installDirectory": "C:\\Program Files\\DevAltum POS",
+  "dataDirectory": "%APPDATA%\\DevAltum POS",
+  "shortcut": {
+    "desktop": true,
+    "startMenu": true
+  },
+  "bundledRuntimes": {
+    "php": "8.3",
+    "mariadb": "10.11",
+    "nginx": "1.24"
+  }
+}
+

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f6dff">
+    <title>DevAltum POS - Device Authentication</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0">
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        .auth-card-stage {
+            width: 100%;
+            max-width: 380px;
+            margin: 0 auto;
+            text-align: center;
+            padding: 10px 16px;
+        }
+
+        .auth-shield-icon-badge {
+            width: 64px;
+            height: 64px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            color: #0f6dff;
+            display: grid;
+            place-items: center;
+            margin: 0 auto 16px auto;
+            box-shadow: 0 8px 20px rgba(15, 109, 255, 0.12);
+        }
+
+        .pin-inputs-row {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 24px 0 16px 0;
+            transition: transform 0.2s ease;
+        }
+
+        .pin-box-input {
+            width: 48px;
+            height: 58px;
+            border-radius: 14px;
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: #0f172a;
+            outline: none;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            -webkit-appearance: none;
+        }
+
+        .pin-box-input:focus {
+            border-color: #0f6dff;
+            box-shadow: 0 0 0 4px rgba(15, 109, 255, 0.15), 0 4px 14px rgba(15, 109, 255, 0.12);
+            transform: translateY(-2px) scale(1.04);
+        }
+
+        .pin-box-input.filled {
+            border-color: #0f6dff;
+            background: #f0f7ff;
+            color: #0f6dff;
+        }
+
+        /* Error Shake Animation & State */
+        .pin-inputs-row.shake-error {
+            animation: shakeHorizontal 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+        }
+
+        .pin-box-input.error-state {
+            border-color: #ef4444 !important;
+            background: #fef2f2 !important;
+            color: #ef4444 !important;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15) !important;
+        }
+
+        .pin-box-input.success-state {
+            border-color: #16a34a !important;
+            background: #f0fdf4 !important;
+            color: #16a34a !important;
+            box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.15) !important;
+        }
+
+        @keyframes shakeHorizontal {
+            10%, 90% { transform: translate3d(-3px, 0, 0); }
+            20%, 80% { transform: translate3d(5px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+            40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+
+        /* Validation Feedback Message */
+        .auth-validation-msg {
+            min-height: 24px;
+            font-size: 12.5px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .auth-validation-msg.error {
+            color: #ef4444;
+        }
+
+        .auth-validation-msg.success {
+            color: #16a34a;
+        }
+
+        .auth-validation-msg.verifying {
+            color: #0f6dff;
+        }
+
+        /* Button Loading Spinner */
+        .btn-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2.5px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: btnSpin 0.75s infinite linear;
+        }
+
+        @keyframes btnSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <section class="view-screen no-bottom-nav" id="view-connect-code">
+        <!-- Header with borderless icons -->
+        <header class="app-header">
+            <button type="button" class="header-action-btn" onclick="navigateTo('welcome')">
+                <span class="material-symbols-rounded">arrow_back_ios_new</span>
+            </button>
+            <div class="header-title-text">Device Pairing</div>
+            <button type="button" class="header-action-btn" onclick="promptConfigureServer()" title="Server Settings">
+                <span class="material-symbols-rounded" style="font-size:22px;">dns</span>
+            </button>
+        </header>
+
+        <div class="view-scroll-content" style="display:flex; flex-direction:column; justify-content:center; align-items:center; min-height:calc(100vh - 70px); padding:20px;">
+            <div class="auth-card-stage">
+                
+                <div class="auth-shield-icon-badge" style="background:transparent; box-shadow:none; border:none; width:150px; height:150px; padding:0; margin: 0 auto 16px auto;">
+                    <img src="../assets/logo-transparent.png" alt="DevAltum Logo" style="width:100%; height:100%; object-fit:contain; filter: drop-shadow(0 10px 24px rgba(14, 110, 255, 0.18));">
+                </div>
+
+                <h2 style="font-size:22px; font-weight: 700; margin-bottom:6px; color:#0f172a; letter-spacing:-0.3px;">Enter 6-Digit PIN</h2>
+                <p style="font-size:13px; color:#64748b; font-weight:600; line-height:1.4;">Open your desktop POS screen &gt; <strong>Mobile Scanner</strong> to get your pairing PIN</p>
+
+                <!-- 6 Interactive OTP Input Boxes -->
+                <div class="pin-inputs-row" id="pin-inputs-row">
+                    <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-box-input" data-idx="0" autofocus autocomplete="off">
+                    <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-box-input" data-idx="1" autocomplete="off">
+                    <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-box-input" data-idx="2" autocomplete="off">
+                    <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-box-input" data-idx="3" autocomplete="off">
+                    <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-box-input" data-idx="4" autocomplete="off">
+                    <input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" class="pin-box-input" data-idx="5" autocomplete="off">
+                </div>
+
+                <!-- Live Validation / Feedback State -->
+                <div class="auth-validation-msg" id="auth-validation-msg">
+                    <span style="color:#94a3b8;">Enter all 6 numeric digits to connect</span>
+                </div>
+
+                <!-- Verify & Authenticate Button -->
+                <button type="button" class="btn-primary-action-block" id="btn-submit-pair" onclick="submitAuthPin()" style="width:100%; margin:0; padding:15px; font-size:15px; font-weight: 700; border-radius:16px;">
+                    <span id="btn-submit-pair-text">Verify &amp; Connect</span>
+                </button>
+
+                <div style="display:flex; align-items:center; gap:10px; margin:16px 0 12px 0;">
+                    <div style="flex:1; height:1px; background:#e2e8f0;"></div>
+                    <span style="font-size:11px; color:#94a3b8; font-weight:700; text-transform:uppercase;">OR</span>
+                    <div style="flex:1; height:1px; background:#e2e8f0;"></div>
+                </div>
+
+                <!-- 1-Tap Continue as Guest Button -->
+                <button type="button" class="btn-neutral-outline" onclick="enableGuestMode(); navigateTo('dashboard');" style="width:100%; padding:13px; font-size:13.5px; font-weight:700; border-radius:16px; border:2px solid #e2e8f0; background:#ffffff; color:#0f6dff; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 14px rgba(15,109,255,0.06);">
+                    <span class="material-symbols-rounded" style="font-size:20px; color:#0f6dff;">bolt</span>
+                    <span>Continue as Guest (Instant Demo)</span>
+                </button>
+
+                <div style="margin-top:16px; font-size:11.5px; color:#94a3b8; font-weight:700; display:flex; align-items:center; justify-content:center; gap:5px;">
+                    <span class="material-symbols-rounded" style="font-size:15px; color:#16a34a;">verified_user</span>
+                    <span>End-to-End Encrypted POS Pairing</span>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Modal & Toast Containers -->
+<div id="app-modal-container"></div>
+<div class="app-toast-container" id="app-toast-container"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/modals.js"></script>
+<script src="../js/router.js"></script>
+<script src="../js/app.js"></script>
+<script>
+    let isVerifying = false;
+
+    function getCollectedPin() {
+        const inputs = document.querySelectorAll('.pin-box-input');
+        let pin = '';
+        inputs.forEach(inp => pin += (inp.value || '').trim());
+        return pin;
+    }
+
+    function setValidationMessage(text, type = 'info') {
+        const msgEl = document.getElementById('auth-validation-msg');
+        if (!msgEl) return;
+
+        const icons = {
+            error: '<span class="material-symbols-rounded" style="font-size:17px;">error</span>',
+            success: '<span class="material-symbols-rounded" style="font-size:17px;">check_circle</span>',
+            verifying: '<div class="btn-spinner" style="width:14px; height:14px; border-width:2px; border-top-color:#0f6dff; border-color:rgba(15,109,255,0.2);"></div>',
+            info: ''
+        };
+
+        msgEl.className = `auth-validation-msg ${type}`;
+        msgEl.innerHTML = `${icons[type] || ''} <span>${text}</span>`;
+    }
+
+    async function submitAuthPin() {
+        if (isVerifying) return;
+        const pin = getCollectedPin();
+
+        // 1. Client-Side Input Validation
+        if (!pin || pin.length !== 6 || !/^\d{6}$/.test(pin)) {
+            triggerErrorState('Please enter all 6 numeric digits.');
+            return;
+        }
+
+        isVerifying = true;
+        const btn = document.getElementById('btn-submit-pair');
+        const btnText = document.getElementById('btn-submit-pair-text');
+        const inputs = document.querySelectorAll('.pin-box-input');
+
+        inputs.forEach(inp => inp.disabled = true);
+        if (btn) {
+            btn.disabled = true;
+            if (btnText) btnText.innerHTML = '<div style="display:flex; align-items:center; justify-content:center; gap:8px;"><div class="btn-spinner"></div><span>Verifying PIN...</span></div>';
+        }
+        setValidationMessage('Verifying credentials with POS Server...', 'verifying');
+
+        try {
+            const data = await apiFetch('/scanner/pair', {
+                method: 'POST',
+                body: JSON.stringify({ code: pin })
+            });
+
+            if (data && data.success) {
+                // 2. Authentication Success
+                AppState.isAuthenticated = true;
+                AppState.pairCode = pin;
+                AppState.pairToken = data.token || pin;
+                AppState.storeName = data.store_name || 'DevAltum Store';
+                AppState.terminalId = data.terminal_id || 'StarPOS-01';
+                AppState.currency = data.currency || 'Rs';
+                AppState.connectedAt = data.connected_at || 'Just now';
+
+                localStorage.setItem('pos_scanner_token', AppState.pairToken);
+                localStorage.setItem('pos_scanner_code', pin);
+                localStorage.setItem('pos_scanner_store', AppState.storeName);
+                localStorage.setItem('pos_scanner_terminal_id', AppState.terminalId);
+                localStorage.setItem('pos_scanner_currency', AppState.currency);
+                localStorage.setItem('pos_scanner_connected_at', AppState.connectedAt);
+
+                inputs.forEach(inp => {
+                    inp.classList.remove('error-state');
+                    inp.classList.add('success-state');
+                });
+
+                playSuccessAudio();
+                triggerHaptic([40, 60, 40]);
+                setValidationMessage(`Authenticated to ${AppState.storeName}! Redirecting...`, 'success');
+
+                setTimeout(() => {
+                    navigateTo('dashboard');
+                }, 750);
+            } else {
+                // 3. Server Authentication Failure
+                triggerErrorState(data.message || 'Invalid Store PIN. Please check your desktop screen.');
+            }
+        } catch(err) {
+            triggerErrorState('Server unreachable. Please check Host URL in settings.');
+        } finally {
+            isVerifying = false;
+            inputs.forEach(inp => inp.disabled = false);
+            if (btn) {
+                btn.disabled = false;
+                if (btnText) btnText.textContent = 'Verify & Connect';
+            }
+        }
+    }
+
+    function triggerErrorState(errorMessage) {
+        const row = document.getElementById('pin-inputs-row');
+        const inputs = document.querySelectorAll('.pin-box-input');
+
+        playErrorAudio();
+        triggerHaptic([60, 60, 60]);
+        setValidationMessage(errorMessage, 'error');
+
+        if (row) {
+            row.classList.remove('shake-error');
+            void row.offsetWidth; // Trigger reflow
+            row.classList.add('shake-error');
+        }
+
+        inputs.forEach(inp => {
+            inp.classList.add('error-state');
+            inp.classList.remove('filled', 'success-state');
+        });
+
+        setTimeout(() => {
+            inputs.forEach(inp => {
+                inp.value = '';
+                inp.classList.remove('error-state');
+            });
+            if (inputs[0]) inputs[0].focus();
+            setValidationMessage('Enter all 6 numeric digits to connect', 'info');
+        }, 1200);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const inputs = document.querySelectorAll('.pin-box-input');
+        if (!inputs || inputs.length === 0) return;
+
+        inputs.forEach((input, idx) => {
+            input.addEventListener('input', (e) => {
+                const val = e.target.value;
+                if (val && !/^\d$/.test(val)) {
+                    e.target.value = '';
+                    return;
+                }
+
+                if (val) {
+                    input.classList.add('filled');
+                    input.classList.remove('error-state');
+                    if (idx < inputs.length - 1) {
+                        inputs[idx + 1].focus();
+                    }
+                } else {
+                    input.classList.remove('filled');
+                }
+
+                const currentPin = getCollectedPin();
+                if (currentPin.length === 6) {
+                    submitAuthPin();
+                } else {
+                    setValidationMessage(`Entered ${currentPin.length} of 6 digits`, 'info');
+                }
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+                    inputs[idx - 1].focus();
+                    inputs[idx - 1].value = '';
+                    inputs[idx - 1].classList.remove('filled', 'error-state');
+                }
+            });
+
+            input.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pastedText = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').trim();
+                if (pastedText.length >= 6) {
+                    const sixDigits = pastedText.substring(0, 6);
+                    sixDigits.split('').forEach((ch, i) => {
+                        if (inputs[i]) {
+                            inputs[i].value = ch;
+                            inputs[i].classList.add('filled');
+                        }
+                    });
+                    submitAuthPin();
+                }
+            });
+        });
+
+        // Focus first input automatically
+        setTimeout(() => {
+            if (inputs[0]) inputs[0].focus();
+        }, 150);
+    });
+</script>
+</body>
+</html>

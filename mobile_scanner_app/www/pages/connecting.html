@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f6dff">
+    <title>DevAltum POS - Connecting</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0">
+    <link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+
+<div class="app-container">
+    <section class="view-screen no-bottom-nav" id="view-connecting">
+        <div class="connecting-state-wrap">
+            <div class="cloud-sync-circle-badge" style="background:transparent; box-shadow:none; border:none; padding:0; display:grid; place-items:center;">
+                <img src="../assets/logo.png" alt="Logo" style="width:82px; height:82px; object-fit:contain; filter:drop-shadow(0 10px 20px rgba(15,109,255,0.22));" onerror="this.src='../../assets/logo.png'">
+            </div>
+
+            <h2 class="connect-heading-title" style="margin-top:16px;">Connecting to POS</h2>
+            <div style="font-size: 15.5px; font-weight: 700; color: #0f6dff; margin-bottom: 8px;" id="connecting-target-label">Establishing Connection...</div>
+            <p class="connect-guide-text">Please wait while we establish a secure connection with your POS server.</p>
+
+            <div class="animated-dots-row">
+                <div class="anim-dot"></div>
+                <div class="anim-dot active"></div>
+                <div class="anim-dot"></div>
+                <div class="anim-dot"></div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- Modal & Toast Containers -->
+<div id="app-modal-container"></div>
+<div class="app-toast-container" id="app-toast-container"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/modals.js"></script>
+<script src="../js/router.js"></script>
+<script src="../js/app.js"></script>
+</body>
+</html>

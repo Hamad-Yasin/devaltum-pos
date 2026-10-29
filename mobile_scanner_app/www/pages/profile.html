@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f6dff">
+    <title>DevAltum POS - Profile</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0">
+    <link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+
+<div class="app-container">
+    <section class="view-screen" id="view-profile">
+        <!-- Top App Header -->
+        <header class="app-header">
+            <button type="button" class="header-action-btn" onclick="openSidebarDrawer()">
+                <span class="material-symbols-rounded">menu</span>
+            </button>
+            <div class="header-title-text" style="font-size:18px; font-weight: 700;">Profile</div>
+            <button type="button" class="header-action-btn" onclick="fetchProfile()" title="Refresh Profile">
+                <span class="material-symbols-rounded">sync</span>
+            </button>
+        </header>
+
+        <!-- Scrollable Profile Content -->
+        <div class="view-scroll-content" style="padding:16px 14px 20px 14px;">
+            <!-- User Avatar & Identity Row -->
+            <div class="profile-user-hero-row">
+                <div class="profile-avatar-navy" id="profile-avatar">
+                    <span id="profile-avatar-char">U</span>
+                </div>
+                <div>
+                    <div class="profile-name-text" id="profile-user-name">Usman</div>
+                    <div class="profile-sub-text" id="profile-hero-email">sales.support@fizzysole.com.pk</div>
+                </div>
+            </div>
+
+            <!-- Profile Info Pill Cards Stack -->
+            <div class="profile-card-group">
+                <!-- Business Name -->
+                <div class="profile-info-pill-card">
+                    <div class="profile-pill-left">
+                        <span class="material-symbols-rounded">storefront</span>
+                        <span>Business Name</span>
+                    </div>
+                    <div class="profile-pill-right" id="profile-business-name">---</div>
+                </div>
+
+                <!-- User Role -->
+                <div class="profile-info-pill-card">
+                    <div class="profile-pill-left">
+                        <span class="material-symbols-rounded">person</span>
+                        <span>User Role</span>
+                    </div>
+                    <div class="profile-pill-right" id="profile-role-badge">---</div>
+                </div>
+
+                <!-- Email -->
+                <div class="profile-info-pill-card">
+                    <div class="profile-pill-left">
+                        <span class="material-symbols-rounded">mail</span>
+                        <span>Email</span>
+                    </div>
+                    <div class="profile-pill-right" id="profile-user-email">---</div>
+                </div>
+
+                <!-- Phone -->
+                <div class="profile-info-pill-card">
+                    <div class="profile-pill-left">
+                        <span class="material-symbols-rounded">call</span>
+                        <span>Phone</span>
+                    </div>
+                    <div class="profile-pill-right" id="profile-user-phone">---</div>
+                </div>
+
+                <!-- Language -->
+                <div class="profile-info-pill-card">
+                    <div class="profile-pill-left">
+                        <span class="material-symbols-rounded">language</span>
+                        <span>Language</span>
+                    </div>
+                    <div class="profile-pill-right" id="profile-language-text">English</div>
+                </div>
+            </div>
+
+            <!-- Logout from POS Button -->
+            <button type="button" class="btn-profile-logout-red" onclick="openLogoutModal()">
+                <span class="material-symbols-rounded" style="font-size:22px;">logout</span>
+                <span>Logout from POS</span>
+            </button>
+
+            <!-- Footer Branding -->
+            <div style="text-align:center; padding:28px 0 16px 0; color:#94a3b8; font-size:11.5px; font-weight:700;">
+                <span>Powered by </span>
+                <strong style="color:#0f6dff; font-weight: 700;">DevAltum</strong>
+            </div>
+        </div>
+
+        <!-- 5-Tab Floating Bottom Navigation Bar -->
+        <nav class="app-bottom-nav">
+            <button type="button" class="bottom-tab-link" onclick="navigateTo('dashboard')">
+                <span class="material-symbols-rounded">home</span>
+                <span>Home</span>
+            </button>
+            <button type="button" class="bottom-tab-link" onclick="navigateTo('sales')">
+                <span class="material-symbols-rounded">receipt_long</span>
+                <span>Sales</span>
+            </button>
+            <div class="nav-scanner-fab-wrap">
+                <button type="button" class="nav-scanner-fab" onclick="navigateTo('scanner')" title="Scan Barcode">
+                    <span class="material-symbols-rounded" style="font-size:26px;">qr_code_scanner</span>
+                </button>
+            </div>
+            <button type="button" class="bottom-tab-link" onclick="navigateTo('products')">
+                <span class="material-symbols-rounded">inventory_2</span>
+                <span>Products</span>
+            </button>
+            <button type="button" class="bottom-tab-link active" onclick="navigateTo('profile')">
+                <span class="material-symbols-rounded">person</span>
+                <span>Profile</span>
+            </button>
+        </nav>
+    </section>
+</div>
+
+<!-- Global Modals & Toast -->
+<div id="app-modal-container"></div>
+<div class="app-toast-container" id="app-toast-container"></div>
+
+<script src="../js/api.js"></script>
+<script src="../js/modals.js"></script>
+<script src="../js/router.js"></script>
+<script src="../js/app.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof fetchProfile === 'function') {
+            fetchProfile();
+        }
+    });
+</script>
+</body>
+</html>

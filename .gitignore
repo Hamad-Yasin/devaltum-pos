@@ -1,0 +1,24 @@
+# Environment & Credentials
+.env
+
+# Storage, Uploads & Backups
+storage/backups/*
+storage/auto_backups/*
+storage/logs/*
+!storage/backups/.gitkeep
+!storage/auto_backups/.gitkeep
+!storage/logs/.gitkeep
+
+# Desktop Build Artifacts (Upload setup to GitHub Releases)
+DevAltum POS Desktop Version/dist/
+DevAltum POS Desktop Version/node_modules/
+DevAltum POS Desktop Version/runtime/
+DevAltum POS Desktop Version/application/
+DevAltum POS Desktop Version/installer/default_data/
+
+# OS Files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
