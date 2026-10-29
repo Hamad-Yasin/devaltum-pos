@@ -366,3 +366,4 @@ function triggerInstallUpdate() {
     display: inline-block;
 }
 </style>
+

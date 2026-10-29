@@ -43,9 +43,13 @@ FunctionEnd
 !macroend
 
 !macro customUnInstall
+  ; Silently terminate any lingering background database or PHP processes to guarantee complete file unlock
+  nsExec::Exec 'taskkill /F /IM mysqld.exe /IM php-cgi.exe /IM php.exe'
+
   ${If} $R9 == "1"
     SetShellVarContext current
     RMDir /r "$APPDATA\devaltump-pos-desktop"
+    RMDir /r "$LOCALAPPDATA\devaltump-pos-desktop"
     RMDir /r "$LOCALAPPDATA\devaltump-pos-desktop-updater"
     SetShellVarContext all
   ${EndIf}
