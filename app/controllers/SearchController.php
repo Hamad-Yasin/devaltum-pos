@@ -173,13 +173,18 @@ class SearchController extends Controller {
         $matches = $db->fetchAll(
             "
                 SELECT
-                    p.id, p.parent_product_id, p.name, p.model_number, p.barcode, p.price, p.wholesale_price, p.cost, p.stock, p.min_stock,
+                    p.id, p.parent_product_id, p.name, p.model_number, p.barcode, p.price, p.wholesale_price,
+                    COALESCE(NULLIF(p.cost, 0), parent.cost, 0) AS cost,
+                    p.stock, p.min_stock,
                     p.unit_value, p.unit_type, p.variant_label,
                     COALESCE(psc.quantity, 1) AS scan_quantity,
                     COALESCE(psc.scan_type, 'single') AS scan_type,
                     COALESCE(psc.label, '') AS scan_label,
                     COALESCE(psc.code, p.barcode, p.model_number, '') AS matched_code
                 FROM products p
+                LEFT JOIN products parent
+                    ON parent.id = p.parent_product_id
+                    AND parent.store_id = p.store_id
                 LEFT JOIN product_scan_codes psc
                     ON psc.product_id = p.id
                     AND psc.store_id = p.store_id

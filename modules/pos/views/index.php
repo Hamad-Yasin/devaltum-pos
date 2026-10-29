@@ -2280,17 +2280,6 @@ $categoriesList = $categories ?? [];
                     <span>Total</span>
                     <span id="total-val" style="color:#0f6dff;"><?php echo App::money(0); ?></span>
                 </div>
-                <!-- LIVE GROSS PROFIT STRIP IN CART TOTALS -->
-                <div class="pos-footer-profit-strip" id="cart-profit-strip" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; background:#f0fdf4; margin:10px -14px -12px; padding:8px 14px; border-radius:0 0 var(--pos-radius-md) var(--pos-radius-md); border-top:1px dashed #bbf7d0;" onclick="window.switchPosTab('profit')" title="Click for Detailed Profit Breakdown (Ctrl + M)">
-                    <div style="display:flex; align-items:center; gap:6px;">
-                        <span class="material-symbols-rounded" style="font-size:16px; color:#059669;">analytics</span>
-                        <span style="font-size:11.5px; font-weight:800; color:#15803d; text-transform:uppercase; letter-spacing:0.3px;">Gross Profit</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:6px;">
-                        <span id="cart-gross-profit-val" style="font-size:13.5px; font-weight:900; color:#047857;"><?php echo App::money(0); ?></span>
-                        <span id="cart-margin-pct-val" style="font-size:11px; font-weight:850; padding:2px 7px; border-radius:6px; background:#dcfce7; color:#15803d;">0.0%</span>
-                    </div>
-                </div>
             </div>
 
             <!-- ACTION BUTTONS (CLEAN CHECKOUT & CLEAR CART) -->
@@ -3574,7 +3563,13 @@ $categoriesList = $categories ?? [];
 
     window.addToCart = (product, quantityToAdd = 1) => {
         const addQty = Math.max(0.001, parseFloat(quantityToAdd) || 1);
-        const costPrice = roundMoney(product.cost_price ?? product.cost ?? 0);
+        let costPrice = roundMoney(product.cost_price ?? product.cost ?? 0);
+        if (costPrice <= 0 && product.id) {
+            const domCard = document.querySelector(`.product-card[data-id="${product.id}"]`);
+            if (domCard && Number(domCard.dataset.costPrice || 0) > 0) {
+                costPrice = roundMoney(Number(domCard.dataset.costPrice));
+            }
+        }
         const retailPrice = roundMoney(product.retail_price ?? product.price ?? 0);
         const wholesalePrice = roundMoney(product.wholesale_price ?? product.price ?? retailPrice);
         const selectedPrice = currentSaleChannel === 'wholesale' ? wholesalePrice : retailPrice;
@@ -3609,7 +3604,7 @@ $categoriesList = $categories ?? [];
             existing.scan_label = product.scan_label || existing.scan_label || '';
             existing.scan_quantity = Math.max(1, Number(product.scan_quantity || addQty || existing.scan_quantity || 1));
             existing.matched_code = product.matched_code || product.barcode || existing.matched_code || '';
-            if (costPrice > 0 && !existing.cost_price) {
+            if (costPrice > 0 && (!existing.cost_price || existing.cost_price <= 0)) {
                 existing.cost_price = costPrice;
             }
         } else {
@@ -4628,22 +4623,32 @@ $categoriesList = $categories ?? [];
         }, 60);
     };
 
-    const normalizeScannedProduct = (product) => ({
-        id: Number(product.id || 0),
-        name: product.name || '',
-        model_number: product.model_number || '',
-        barcode: product.barcode || '',
-        unit_label: product.unit_label || product.unit_type || 'pcs',
-        matched_code: product.matched_code || product.barcode || '',
-        retail_price: Number(product.price || product.retail_price || 0),
-        wholesale_price: Number(product.wholesale_price || product.price || product.retail_price || 0),
-        cost_price: Number(product.cost || product.cost_price || 0),
-        price: Number(product.price || product.retail_price || 0),
-        max_stock: Number(product.stock || product.max_stock || 0),
-        scan_type: product.scan_type || 'single',
-        scan_label: product.scan_label || '',
-        scan_quantity: Math.max(1, Number(product.scan_quantity || 1))
-    });
+    const normalizeScannedProduct = (product) => {
+        let resolvedCost = Number(product.cost ?? product.cost_price ?? 0);
+        if (resolvedCost <= 0 && product.id) {
+            const domCard = document.querySelector(`.product-card[data-id="${product.id}"]`);
+            if (domCard && Number(domCard.dataset.costPrice || 0) > 0) {
+                resolvedCost = Number(domCard.dataset.costPrice);
+            }
+        }
+        return {
+            id: Number(product.id || 0),
+            name: product.name || '',
+            model_number: product.model_number || '',
+            barcode: product.barcode || '',
+            unit_label: product.unit_label || product.unit_type || 'pcs',
+            matched_code: product.matched_code || product.barcode || '',
+            retail_price: Number(product.price || product.retail_price || 0),
+            wholesale_price: Number(product.wholesale_price || product.price || product.retail_price || 0),
+            cost_price: resolvedCost,
+            cost: resolvedCost,
+            price: Number(product.price || product.retail_price || 0),
+            max_stock: Number(product.stock || product.max_stock || 0),
+            scan_type: product.scan_type || 'single',
+            scan_label: product.scan_label || '',
+            scan_quantity: Math.max(1, Number(product.scan_quantity || 1))
+        };
+    };
 
     let lastAddedProductId = null;
     let lastAddedProductTime = 0;

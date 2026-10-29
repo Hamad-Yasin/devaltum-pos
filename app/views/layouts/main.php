@@ -639,13 +639,7 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
                     $profileSub = ($user['name'] ?? $user['email'] ?? 'User') . ' • ' . $roleLabel;
                     ?>
 
-                    <!-- Quick Store Name Header Pill -->
-                    <div class="store-identity-pill" onclick="window.openStoreNameQuickModal && window.openStoreNameQuickModal()" title="Click to customize Store Name">
-                        <span class="material-symbols-rounded pill-icon">storefront</span>
-                        <span class="pill-text" id="headerStoreNameText"><?php echo Security::escape($activeStoreName); ?></span>
-                        <span class="material-symbols-rounded pill-edit">edit</span>
-                    </div>
-
+                    <!-- Notifications Dropdown -->
                     <div class="dropdown">
                         <button id="notifications-bell-btn"
                             class="icon-btn dropdown-toggle <?php echo $newNotificationsCount > 0 ? 'bell-shake' : ''; ?>"
@@ -698,18 +692,7 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
                             <div class="dropdown-title">
                                 <div style="font-weight: 800; color: #0f172a; font-size: 14px;" id="profileModalUserName"><?php echo Security::escape($user['name'] ?? 'Admin'); ?></div>
                                 <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;"><?php echo Security::escape($user['email'] ?? ''); ?></div>
-                                <div style="font-size: 12px; color: #2563eb; font-weight: 800; margin-top: 8px; display: flex; align-items: center; justify-content: space-between; background: #eff6ff; padding: 6px 10px; border-radius: 10px; border: 1px solid #bfdbfe;">
-                                    <span style="display: flex; align-items: center; gap: 5px;">
-                                        <span class="material-symbols-rounded" style="font-size: 17px;">storefront</span> 
-                                        <span id="dropdownStoreNameDisplay"><?php echo Security::escape($activeStoreName); ?></span>
-                                    </span>
-                                    <a href="javascript:void(0)" onclick="window.openStoreNameQuickModal && window.openStoreNameQuickModal()" style="color: #2563eb; text-decoration: none; font-size: 11px; font-weight: 900; letter-spacing: 0.5px;">EDIT</a>
-                                </div>
                             </div>
-                            <a class="dropdown-link" href="javascript:void(0)" onclick="window.openStoreNameQuickModal && window.openStoreNameQuickModal()">
-                                <span class="material-symbols-rounded" style="font-size:18px; color:#2563eb;">edit_note</span>
-                                <span>Change Store Name</span>
-                            </a>
                             <a class="dropdown-link" href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/auth/profile">
                                 <span class="material-symbols-rounded" style="font-size:18px;">account_circle</span>
                                 <span>My Profile</span>
@@ -1175,105 +1158,7 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
     </script>
     <?php endif; ?>
 
-    <!-- Quick Store Name Modal -->
-    <div id="quickStoreNameModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.65); backdrop-filter:blur(5px); z-index:9999999; align-items:center; justify-content:center; padding:16px;">
-        <div style="background:#ffffff; border-radius:22px; padding:28px; width:100%; max-width:440px; box-shadow:0 25px 60px -15px rgba(0,0,0,0.3); border:1px solid #e2e8f0;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
-                <div style="display:flex; align-items:center; gap:12px;">
-                    <div style="width:42px; height:42px; border-radius:14px; background:#eff6ff; color:#2563eb; display:grid; place-items:center; border:1px solid #bfdbfe;">
-                        <span class="material-symbols-rounded" style="font-size:24px;">storefront</span>
-                    </div>
-                    <div>
-                        <h3 style="margin:0; font-size:17px; font-weight:900; color:#0f172a;">Store & Shop Name</h3>
-                        <p style="margin:2px 0 0; font-size:12px; color:#64748b;">Set your business name</p>
-                    </div>
-                </div>
-                <button type="button" onclick="window.closeStoreNameQuickModal()" style="border:none; background:#f1f5f9; border-radius:50%; width:32px; height:32px; display:grid; place-items:center; cursor:pointer; color:#64748b;">
-                    <span class="material-symbols-rounded" style="font-size:18px;">close</span>
-                </button>
-            </div>
-            <form id="quickStoreNameForm" onsubmit="window.submitQuickStoreName(event)">
-                <input type="hidden" name="csrf_token" value="<?php echo Security::csrfToken(); ?>">
-                <div style="margin-bottom:20px;">
-                    <label style="display:block; font-size:12px; font-weight:800; color:#334155; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Store / Business Name</label>
-                    <input type="text" id="quickStoreNameInput" name="store_name" required value="<?php echo Security::escape($activeStoreName); ?>" placeholder="e.g. Al-Madina Super Store" style="width:100%; box-sizing:border-box; padding:12px 16px; border:2px solid #cbd5e1; border-radius:14px; font-size:15px; font-weight:800; color:#0f172a; outline:none; transition:all 0.2s;" onfocus="this.style.borderColor='#2563eb'; this.style.boxShadow='0 0 0 3px rgba(37,99,235,0.15)';" onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none';">
-                    <p style="margin:8px 0 0; font-size:12px; color:#64748b; line-height:1.4;">This name automatically saves to the database and appears on all receipts, POS header, invoices, and quotations.</p>
-                </div>
-                <div style="display:flex; gap:10px; justify-content:flex-end;">
-                    <button type="button" onclick="window.closeStoreNameQuickModal()" style="padding:10px 18px; border-radius:12px; font-weight:700; border:1px solid #cbd5e1; background:#fff; color:#475569; cursor:pointer;">Cancel</button>
-                    <button type="submit" id="quickStoreNameSubmitBtn" style="padding:10px 22px; border-radius:12px; font-weight:800; background:#2563eb; color:#fff; border:none; cursor:pointer; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.3);">
-                        <span class="material-symbols-rounded" style="font-size:18px;">save</span>
-                        <span>Save Name</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Quick Store Name & Dropdown Fix Script -->
     <script>
-        window.openStoreNameQuickModal = function() {
-            const modal = document.getElementById('quickStoreNameModal');
-            const input = document.getElementById('quickStoreNameInput');
-            if (modal) {
-                modal.style.display = 'flex';
-                if (input) {
-                    input.focus();
-                    input.select();
-                }
-            }
-        };
-
-        window.closeStoreNameQuickModal = function() {
-            const modal = document.getElementById('quickStoreNameModal');
-            if (modal) modal.style.display = 'none';
-        };
-
-        window.submitQuickStoreName = async function(e) {
-            e.preventDefault();
-            const input = document.getElementById('quickStoreNameInput');
-            const btn = document.getElementById('quickStoreNameSubmitBtn');
-            const val = (input ? input.value : '').trim();
-            if (!val) return;
-
-            const originalBtnHtml = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<span class="material-symbols-rounded" style="font-size:18px; animation:spin 1s linear infinite;">sync</span> Saving...';
-
-            try {
-                const formData = new FormData(document.getElementById('quickStoreNameForm'));
-                const res = await fetch('<?= defined('BASE_URL') ? BASE_URL : '' ?>/updates/quick_update_store_name', {
-                    method: 'POST',
-                    body: formData,
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                const data = await res.json();
-                if (data && data.success) {
-                    const newName = data.store_name || val;
-                    const headerPillText = document.getElementById('headerStoreNameText');
-                    if (headerPillText) headerPillText.textContent = newName;
-                    const profileStoreText = document.getElementById('headerProfileStoreName');
-                    if (profileStoreText) profileStoreText.textContent = newName;
-                    const dropdownStoreText = document.getElementById('dropdownStoreNameDisplay');
-                    if (dropdownStoreText) dropdownStoreText.textContent = newName;
-
-                    window.closeStoreNameQuickModal();
-                    if (window.appToast) {
-                        window.appToast('Store name updated successfully!', 'success');
-                    } else {
-                        alert('Store name updated successfully!');
-                    }
-                } else {
-                    alert((data && data.error) ? data.error : 'Failed to update store name.');
-                }
-            } catch(err) {
-                alert('Network error while saving store name.');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalBtnHtml;
-            }
-        };
-
         // Instant responsive profile & dropdown event delegation
         document.addEventListener('click', function(e) {
             const toggle = e.target.closest('.dropdown-toggle');

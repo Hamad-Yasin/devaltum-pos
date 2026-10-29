@@ -1632,34 +1632,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const action = form.action || window.location.href;
 
         if (action.includes('/delete/')) {
-            event.preventDefault();
-            window.appModal.open({
-                title: 'Confirm Delete',
-                body: `
-                    <div style="padding:6px 0 4px;">
-                        <div style="font-weight:700; margin-bottom:8px;">Are you sure you want to delete this record?</div>
-                        <div class="page-subtitle">This action may affect related data and cannot be easily undone.</div>
-                    </div>
-                `,
-                actions: `
-                    <button class="btn btn-secondary" type="button" data-modal-close>Cancel</button>
-                    <button class="btn btn-danger" type="button" id="confirm-delete-action">
-                        <span class="material-symbols-rounded">delete</span>Yes, Delete
-                    </button>
-                `
-            });
-            const confirmDeleteButton = document.getElementById('confirm-delete-action');
-            if (confirmDeleteButton) {
-                confirmDeleteButton.onclick = () => {
-                    window.appModal.close();
-                    if (method === 'GET') {
-                        loadPage(buildUrlFromForm(form, submitter));
-                    } else {
-                        executeFormSubmit(form, submitter, method, action);
+            if (form.dataset.confirmBypassed === 'true') {
+                // Already confirmed via modal, proceed cleanly without duplicate dialog
+            } else if (form.dataset.confirm || (form.getAttribute('onsubmit') && form.getAttribute('onsubmit').includes('confirm'))) {
+                // Form has its own confirm attribute/handler which will be handled by universal appConfirm interceptor
+                return;
+            } else {
+                event.preventDefault();
+                const isDanger = form.dataset.confirmDanger === 'false' ? false : true;
+                window.appConfirm('Are you sure you want to delete this record?\nThis action may affect related data and cannot be easily undone.', 'Confirm Delete', { isDanger: isDanger, confirmText: 'Yes, Delete' }).then((confirmed) => {
+                    if (confirmed) {
+                        form.dataset.confirmBypassed = 'true';
+                        if (method === 'GET') {
+                            loadPage(buildUrlFromForm(form, submitter));
+                        } else {
+                            executeFormSubmit(form, submitter, method, action);
+                        }
                     }
-                };
+                });
+                return;
             }
-            return;
         }
 
         if (form.hasAttribute('data-no-ajax')) {
