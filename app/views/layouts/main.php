@@ -561,6 +561,12 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
                 </a>
                 <?php endif; ?>
                 <?php if (Auth::isAdmin() || $canAccess('settings')): ?>
+                <a href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/updates/software"
+                    data-title="Software Updates"
+                    class="nav-item <?php echo ($activeMenu ?? '') === 'software_updates' ? 'active' : ''; ?><?= $expCls ?>"<?= $expClick ?>>
+                    <span class="material-symbols-rounded icon">system_update</span><span>Software Updates</span>
+                    <span id="nav-update-indicator-dot" style="display:none; margin-left:auto; width:8px; height:8px; border-radius:50%; background:#10b981; box-shadow:0 0 8px #10b981;"></span>
+                </a>
                 <a href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/updates/index"
                     data-title="Settings"
                     class="nav-item <?php echo ($activeMenu ?? '') === 'settings' ? 'active' : ''; ?><?= $expCls ?>"<?= $expClick ?>>
@@ -1289,6 +1295,238 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
             }
         });
     </script>
+
+    <!-- DevAltum POS Premium Draggable Floating Update Widget -->
+    <div id="pos-draggable-update-widget" style="position: fixed; z-index: 99998; touch-action: none; cursor: grab; user-select: none;">
+        <!-- Widget Floating Pill -->
+        <div id="widget-main-pill" style="display: flex; align-items: center; gap: 8px; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.16); padding: 7px 14px 7px 9px; border-radius: 30px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.05); transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;">
+            <!-- Icon with pulse indicator -->
+            <div style="position: relative; width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #1d4ed8); display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 10px rgba(37,99,235,0.4);">
+                <span class="material-symbols-rounded" id="widget-icon" style="font-size: 17px; color: #ffffff;">system_update</span>
+                <span id="widget-pulse-dot" style="position: absolute; top: -1px; right: -1px; width: 8px; height: 8px; border-radius: 50%; background: #10b981; border: 1.5px solid #0f172a;"></span>
+            </div>
+            <!-- Dynamic Label -->
+            <div style="display: flex; flex-direction: column; line-height: 1.1;">
+                <span style="font-size: 10px; font-weight: 500; color: #94a3b8; letter-spacing: 0.3px; text-transform: uppercase;">DevAltum</span>
+                <span id="widget-status-text" style="font-size: 12px; font-weight: 700; color: #f8fafc;">v1.1.0</span>
+            </div>
+            <!-- Action chevron / status icon -->
+            <span class="material-symbols-rounded" id="widget-action-icon" style="font-size: 16px; color: #94a3b8; margin-left: 2px;">expand_less</span>
+        </div>
+
+        <!-- Mini Quick Panel (Toggleable) -->
+        <div id="widget-quick-panel" style="display: none; position: absolute; bottom: 48px; right: 0; width: 260px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 16px; padding: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); color: #fff; transform-origin: bottom right;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span class="material-symbols-rounded" style="color: #3b82f6; font-size: 18px;">cloud_sync</span>
+                    <strong style="font-size: 13px; color: #f1f5f9;">Update Manager</strong>
+                </div>
+                <span id="panel-status-badge" style="font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; background: rgba(16,185,129,0.2); color: #34d399;">Up to Date</span>
+            </div>
+            <p id="panel-status-desc" style="font-size: 11px; color: #94a3b8; margin: 0 0 12px 0; line-height: 1.4;">
+                Desktop app checks GitHub for releases. All store data is 100% safe.
+            </p>
+            <div id="panel-progress-container" style="display: none; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #cbd5e1; margin-bottom: 4px;">
+                    <span>Downloading...</span>
+                    <span id="panel-progress-percent">0%</span>
+                </div>
+                <div style="height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                    <div id="panel-progress-bar" style="width: 0%; height: 100%; background: #3b82f6; border-radius: 3px;"></div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <a href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/updates/software" style="flex: 1; text-align: center; background: #2563eb; color: #fff; text-decoration: none; padding: 7px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; transition: background 0.2s;">
+                    Update Center
+                </a>
+                <button type="button" id="panel-restart-btn" onclick="if(window.desktopAPI) window.desktopAPI.installUpdate();" style="display: none; flex: 1; background: #10b981; color: #fff; border: none; padding: 7px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                    Restart
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function initDraggableUpdateWidget() {
+        const widget = document.getElementById('pos-draggable-update-widget');
+        const pill = document.getElementById('widget-main-pill');
+        const panel = document.getElementById('widget-quick-panel');
+        const statusText = document.getElementById('widget-status-text');
+        const pulseDot = document.getElementById('widget-pulse-dot');
+        const panelBadge = document.getElementById('panel-status-badge');
+        const panelDesc = document.getElementById('panel-status-desc');
+        const progressContainer = document.getElementById('panel-progress-container');
+        const progressBar = document.getElementById('panel-progress-bar');
+        const progressPercent = document.getElementById('panel-progress-percent');
+        const restartBtn = document.getElementById('panel-restart-btn');
+
+        if (!widget || !pill) return;
+
+        // Restore stored position or default to bottom-right
+        let posX = localStorage.getItem('devaltum_widget_x');
+        let posY = localStorage.getItem('devaltum_widget_y');
+
+        const margin = 20;
+        const screenW = window.innerWidth;
+        const screenH = window.innerHeight;
+
+        if (posX !== null && posY !== null) {
+            posX = Math.max(margin, Math.min(screenW - 170, parseInt(posX)));
+            posY = Math.max(margin, Math.min(screenH - 50, parseInt(posY)));
+            widget.style.left = posX + 'px';
+            widget.style.top = posY + 'px';
+        } else {
+            widget.style.right = '24px';
+            widget.style.bottom = '24px';
+        }
+
+        // Draggable Logic (Smooth Touch + Mouse)
+        let isDragging = false;
+        let startX = 0, startY = 0;
+        let initWidgetX = 0, initWidgetY = 0;
+        let movedDistance = 0;
+
+        pill.addEventListener('pointerdown', function(e) {
+            isDragging = true;
+            widget.style.cursor = 'grabbing';
+            pill.style.transform = 'scale(0.96)';
+
+            const rect = widget.getBoundingClientRect();
+            initWidgetX = rect.left;
+            initWidgetY = rect.top;
+
+            startX = e.clientX;
+            startY = e.clientY;
+            movedDistance = 0;
+
+            // Remove bottom/right pinning once dragged
+            widget.style.right = 'auto';
+            widget.style.bottom = 'auto';
+            widget.style.left = initWidgetX + 'px';
+            widget.style.top = initWidgetY + 'px';
+
+            pill.setPointerCapture(e.pointerId);
+        });
+
+        window.addEventListener('pointermove', function(e) {
+            if (!isDragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            movedDistance += Math.abs(dx) + Math.abs(dy);
+
+            let newX = initWidgetX + dx;
+            let newY = initWidgetY + dy;
+
+            // Viewport clamping
+            const rect = widget.getBoundingClientRect();
+            newX = Math.max(8, Math.min(window.innerWidth - rect.width - 8, newX));
+            newY = Math.max(8, Math.min(window.innerHeight - rect.height - 8, newY));
+
+            widget.style.left = newX + 'px';
+            widget.style.top = newY + 'px';
+
+            // Auto position quick panel to stay inside screen
+            if (newY < 180) {
+                panel.style.bottom = 'auto';
+                panel.style.top = '48px';
+            } else {
+                panel.style.top = 'auto';
+                panel.style.bottom = '48px';
+            }
+            if (newX < 260) {
+                panel.style.right = 'auto';
+                panel.style.left = '0px';
+            } else {
+                panel.style.left = 'auto';
+                panel.style.right = '0px';
+            }
+        });
+
+        function stopDragging(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            widget.style.cursor = 'grab';
+            pill.style.transform = 'scale(1)';
+
+            const rect = widget.getBoundingClientRect();
+            localStorage.setItem('devaltum_widget_x', Math.round(rect.left));
+            localStorage.setItem('devaltum_widget_y', Math.round(rect.top));
+
+            // If it was a click (not a drag)
+            if (movedDistance < 6) {
+                if (panel.style.display === 'none' || panel.style.display === '') {
+                    panel.style.display = 'block';
+                } else {
+                    panel.style.display = 'none';
+                }
+            }
+        }
+
+        window.addEventListener('pointerup', stopDragging);
+        window.addEventListener('pointercancel', stopDragging);
+
+        // Close panel when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!widget.contains(e.target)) {
+                panel.style.display = 'none';
+            }
+        });
+
+        // Electron desktop updater connection
+        if (typeof window.desktopAPI !== 'undefined' && window.desktopAPI.isDesktop) {
+            window.desktopAPI.getSystemInfo().then(info => {
+                if (info && info.version) {
+                    statusText.textContent = 'v' + info.version;
+                }
+            }).catch(() => {});
+
+            window.desktopAPI.onUpdateStatus(data => {
+                if (!data) return;
+                if (data.status === 'checking') {
+                    statusText.textContent = 'Checking...';
+                    pulseDot.style.background = '#3b82f6';
+                    panelBadge.textContent = 'Checking...';
+                    panelBadge.style.color = '#60a5fa';
+                    panelDesc.textContent = 'Checking GitHub releases for latest build...';
+                }
+                else if (data.status === 'available') {
+                    statusText.textContent = 'Downloading...';
+                    pulseDot.style.background = '#f59e0b';
+                    panelBadge.textContent = 'v' + (data.version || '') + ' Available';
+                    panelBadge.style.color = '#fbbf24';
+                    panelDesc.textContent = 'New update is downloading in the background.';
+                    progressContainer.style.display = 'block';
+                }
+                else if (data.status === 'not-available') {
+                    pulseDot.style.background = '#10b981';
+                    panelBadge.textContent = 'Up to Date';
+                    panelBadge.style.color = '#34d399';
+                    panelDesc.textContent = 'You are running the verified latest release.';
+                    progressContainer.style.display = 'none';
+                }
+                else if (data.status === 'downloaded') {
+                    statusText.textContent = 'Update Ready!';
+                    pulseDot.style.background = '#10b981';
+                    pulseDot.style.boxShadow = '0 0 10px #10b981';
+                    panelBadge.textContent = 'Ready to Install';
+                    panelBadge.style.color = '#34d399';
+                    panelDesc.textContent = `Version v${data.version || ''} downloaded. Restart to apply.`;
+                    progressContainer.style.display = 'none';
+                    if (restartBtn) restartBtn.style.display = 'block';
+                }
+            });
+
+            window.desktopAPI.onUpdateProgress(data => {
+                progressContainer.style.display = 'block';
+                const percent = Math.min(100, Math.max(0, data.percent || 0));
+                statusText.textContent = percent + '%';
+                progressBar.style.width = percent + '%';
+                progressPercent.textContent = percent + '%';
+            });
+        }
+    })();
+    </script>
+
     <?php echo $extraJs ?? ''; ?>
 </body>
 

@@ -84,6 +84,7 @@ class AppUpdater {
         // 6. Error handling (e.g. offline, no internet)
         autoUpdater.on('error', (err) => {
             console.warn('[AutoUpdater] Update check skipped or failed:', err.message);
+            this.sendToRenderer('updater-status', { status: 'error', message: err.message });
             // Silently ignore network failures so POS operation is never blocked
         });
 

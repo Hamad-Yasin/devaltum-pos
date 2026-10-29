@@ -1397,6 +1397,7 @@ if ($settingsCompanyNtn === '') {
     <button class="settings-tab-btn" type="button" data-settings-tab="scanner"><span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle; margin-right:4px;">qr_code_scanner</span>Mobile Scanner</button>
     <button class="settings-tab-btn" type="button" data-settings-tab="security">Security & Biometrics</button>
     <button class="settings-tab-btn" type="button" data-settings-tab="migration"><span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle; margin-right:4px;">database</span>Database & Sync</button>
+    <a href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/updates/software" class="settings-tab-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:#eff6ff; color:#2563eb; border-color:#bfdbfe;"><span class="material-symbols-rounded" style="font-size:18px;">cloud_sync</span>Software Updates (Live)</a>
 </div>
 
 <section class="settings-panel active" data-settings-panel="business">

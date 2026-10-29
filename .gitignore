@@ -22,3 +22,7 @@ ehthumbs.db
 Desktop.ini
 .DS_Store
 
+
+mobile_scanner_app/node_modules/
+**/node_modules/
+

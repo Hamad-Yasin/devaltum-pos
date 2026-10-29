@@ -88,6 +88,24 @@ class UpdatesController extends Controller {
         ]);
     }
 
+    public function software() {
+        $packageJsonPath = dirname(__DIR__, 2) . '/DevAltum POS Desktop Version/package.json';
+        $currentVersion = '1.1.0';
+        if (file_exists($packageJsonPath)) {
+            $pkgData = json_decode(file_get_contents($packageJsonPath), true);
+            if (!empty($pkgData['version'])) {
+                $currentVersion = $pkgData['version'];
+            }
+        }
+
+        $this->view('../../modules/updates/views/software', [
+            'pageTitle' => 'DevAltum POS - Software Updates Center',
+            'activeMenu' => 'software_updates',
+            'currentVersion' => $currentVersion,
+            'githubRepo' => 'Hamad-Yasin/devaltum-pos'
+        ]);
+    }
+
     public function mobilescanner() {
         $storeId = (int) Tenant::currentStoreId();
         $store = Database::getInstance()->fetch("SELECT * FROM stores WHERE id = ? LIMIT 1", [$storeId]);
