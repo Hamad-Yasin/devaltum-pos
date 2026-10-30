@@ -3561,8 +3561,22 @@ $categoriesList = $categories ?? [];
         };
     };
 
+    let lastAddToCartScanLock = { id: null, code: '', time: 0 };
     window.addToCart = (product, quantityToAdd = 1) => {
+        if (!product) return false;
         const addQty = Math.max(0.001, parseFloat(quantityToAdd) || 1);
+        const now = Date.now();
+        const pId = Number(product.id || 0);
+        const pCode = String(product.matched_code || product.barcode || pId || '').trim();
+
+        // Lightning-fast hardware scanner bounce & double-trigger shield:
+        // If the exact same product is triggered twice within 380ms, drop the ghost bounce.
+        // Consecutive scans of different products have 0ms delay for ultra-fast cashier speed!
+        if (pId && (pId === lastAddToCartScanLock.id || (pCode && pCode === lastAddToCartScanLock.code)) && (now - lastAddToCartScanLock.time < 380)) {
+            return false;
+        }
+        lastAddToCartScanLock = { id: pId, code: pCode, time: now };
+
         let costPrice = roundMoney(product.cost_price ?? product.cost ?? 0);
         if (costPrice <= 0 && product.id) {
             const domCard = document.querySelector(`.product-card[data-id="${product.id}"]`);
@@ -4651,18 +4665,22 @@ $categoriesList = $categories ?? [];
     };
 
     let lastAddedProductId = null;
+    let lastAddedProductCode = '';
     let lastAddedProductTime = 0;
     const addScannedProduct = (product) => {
         if (!product) return;
         const now = Date.now();
         const pId = Number(product.id || 0);
+        const pCode = String(product.matched_code || product.barcode || pId || '').trim();
 
         // STRICT HARDWARE SCANNER GUARD:
-        // Ignore rapid duplicate trigger (<850ms) for the exact same product from scanner gun bounces/multiple Enters
-        if (pId && pId === lastAddedProductId && (now - lastAddedProductTime < 850)) {
+        // Ignore rapid duplicate trigger (<380ms) for the exact same product from scanner gun bounces/multiple Enters.
+        // Scanning different products has 0ms delay!
+        if (pId && (pId === lastAddedProductId || (pCode && pCode === lastAddedProductCode)) && (now - lastAddedProductTime < 380)) {
             return;
         }
         lastAddedProductId = pId;
+        lastAddedProductCode = pCode;
         lastAddedProductTime = now;
 
         const normalized = normalizeScannedProduct(product);
@@ -4725,12 +4743,33 @@ $categoriesList = $categories ?? [];
         }
 
         const now = Date.now();
-        if (isRemoteBarcodeLookupBusy || (scanned === lastRemoteScannedBarcode && (now - lastRemoteScannedTime < 850))) {
+        if (isRemoteBarcodeLookupBusy || (scanned === lastRemoteScannedBarcode && (now - lastRemoteScannedTime < 380))) {
             return;
         }
         lastRemoteScannedBarcode = scanned;
         lastRemoteScannedTime = now;
         isRemoteBarcodeLookupBusy = true;
+
+        // FAST PATH: Instant local DOM card lookup (0ms network delay)
+        const lookupLc = scanned.toLowerCase();
+        const existingCard = document.querySelector(`.product-card[data-barcode="${lookupLc}"]`) 
+            || document.querySelector(`.product-card[data-model="${lookupLc}"]`);
+        if (existingCard) {
+            isRemoteBarcodeLookupBusy = false;
+            addScannedProduct({
+                id: Number(existingCard.dataset.id || 0),
+                name: existingCard.dataset.productName || '',
+                model_number: existingCard.dataset.modelNumber || '',
+                barcode: existingCard.dataset.productBarcode || scanned,
+                unit_label: existingCard.dataset.unitLabel || 'pcs',
+                retail_price: Number(existingCard.dataset.retailPrice || 0),
+                wholesale_price: Number(existingCard.dataset.wholesalePrice || 0),
+                cost_price: Number(existingCard.dataset.costPrice || 0),
+                price: Number(existingCard.dataset.retailPrice || 0),
+                max_stock: Number(existingCard.dataset.stock || 0)
+            });
+            return;
+        }
 
         try {
             // First attempt: /pos/barcode, fallback to /search/barcode or /?url=search/barcode
@@ -4771,7 +4810,7 @@ $categoriesList = $categories ?? [];
             if (typeof playScannerBeep === 'function') playScannerBeep('error');
             window.appToast?.(`Barcode not found in catalog: ${scanned}`, 'error');
         } finally {
-            setTimeout(() => { isRemoteBarcodeLookupBusy = false; }, 600);
+            setTimeout(() => { isRemoteBarcodeLookupBusy = false; }, 250);
         }
     };
 
@@ -4931,7 +4970,7 @@ $categoriesList = $categories ?? [];
         // 10. Enter on pos-search input or USB Hardware Barcode Scanner Enter
         if (key === 'enter' || code === 'Enter' || code === 'NumpadEnter') {
             const now = Date.now();
-            if (now - lastPosEnterTime < 500) {
+            if (now - lastPosEnterTime < 320) {
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation?.();
@@ -4961,6 +5000,7 @@ $categoriesList = $categories ?? [];
                 const codeToLookup = scannedFromBuffer || searchVal;
                 e.preventDefault();
                 e.stopPropagation();
+                e.stopImmediatePropagation?.();
                 if (searchEl) {
                     searchEl.value = '';
                     searchEl.blur(); // Blur immediately to prevent duplicate keyup/enter from clicking cards
@@ -4973,6 +5013,8 @@ $categoriesList = $categories ?? [];
             // Normal manual enter on search input: click first visible card
             if (document.activeElement === searchEl) {
                 e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation?.();
                 const visibleCards = Array.from(document.querySelectorAll('#products-grid .product-card')).filter(c => c.style.display !== 'none');
                 if (visibleCards.length > 0) {
                     visibleCards[0].click();
@@ -4988,7 +5030,7 @@ $categoriesList = $categories ?? [];
         if (keyboardScannerEnabled && !isOtherInputField && (e.key || '').length === 1 && !isCtrl && !isAlt) {
             barcodeBuffer += e.key;
             clearTimeout(barcodeTimer);
-            barcodeTimer = setTimeout(() => { barcodeBuffer = ''; }, 75);
+            barcodeTimer = setTimeout(() => { barcodeBuffer = ''; }, 120);
         }
     };
 
