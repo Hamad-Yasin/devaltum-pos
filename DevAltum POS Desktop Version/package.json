@@ -1,6 +1,6 @@
 {
   "name": "devaltump-pos-desktop",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "DevAltum POS - Commercial Desktop Edition",
   "main": "electron/main.js",
   "scripts": {

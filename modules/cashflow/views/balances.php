@@ -1007,3 +1007,4 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => $a['status'] === 
 $content = ob_get_clean();
 require APP_PATH . '/views/layouts/main.php';
 ?>
+

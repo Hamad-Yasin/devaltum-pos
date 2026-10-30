@@ -351,7 +351,7 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
     <script>
         (function() {
             if (sessionStorage.getItem('splash_shown')) { document.documentElement.classList.add('splash-handled'); }
-            const currentAppVersion = '1.1.2';
+            const currentAppVersion = '1.1.3';
             const lastAppVersion = localStorage.getItem('devaltum_pos_version');
             if (lastAppVersion && lastAppVersion !== currentAppVersion) {
                 try {
