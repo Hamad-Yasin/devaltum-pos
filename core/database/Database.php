@@ -22,6 +22,10 @@ class Database {
         try {
             $this->pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
             $this->pdo->exec("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
+            $tzOffset = date('P');
+            if (!empty($tzOffset)) {
+                $this->pdo->exec("SET time_zone = '$tzOffset'");
+            }
         } catch (\PDOException $e) {
             $this->connectionError = $e->getMessage();
             $this->pdo = null;

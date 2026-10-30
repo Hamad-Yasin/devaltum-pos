@@ -33,13 +33,19 @@ class HomeController extends Controller {
         $dateParams = [];
 
         if ($filter === 'today') {
-            $dateCondition = "DATE(created_at) = CURRENT_DATE()";
+            $dateCondition = "DATE(created_at) = ?";
+            $dateParams = [date('Y-m-d')];
         } elseif ($filter === 'yesterday') {
-            $dateCondition = "DATE(created_at) = DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)";
+            $dateCondition = "DATE(created_at) = ?";
+            $dateParams = [date('Y-m-d', strtotime('-1 day'))];
         } elseif ($filter === 'this_week') {
-            $dateCondition = "YEARWEEK(created_at, 1) = YEARWEEK(CURRENT_DATE(), 1)";
+            $weekStart = new DateTime();
+            $weekStart->setISODate((int) date('o'), (int) date('W'));
+            $dateCondition = "DATE(created_at) BETWEEN ? AND ?";
+            $dateParams = [$weekStart->format('Y-m-d'), date('Y-m-d')];
         } elseif ($filter === 'this_month') {
-            $dateCondition = "MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())";
+            $dateCondition = "DATE(created_at) BETWEEN ? AND ?";
+            $dateParams = [date('Y-m-01'), date('Y-m-t')];
         } elseif ($filter === 'custom' && $startDate && $endDate) {
             $dateCondition = "DATE(created_at) BETWEEN ? AND ?";
             $dateParams = [$startDate, $endDate];
@@ -130,7 +136,7 @@ class HomeController extends Controller {
             'total_returns' => (float) ($invoiceMetrics['total_returns'] ?? 0),
             'total_orders' => (int) ($invoiceMetrics['total_orders'] ?? 0),
             'total_customers' => $getCount("SELECT COUNT(id) as count FROM customers WHERE $storeWhere", $storeParams),
-            'today_sales' => $getSum("SELECT SUM(total) as sum FROM invoices WHERE $storeWhere $invoiceScope AND status = 'paid' AND transaction_type IN ('Sale','Exchange') AND DATE(created_at) = CURDATE()", array_merge($storeParams, $invoiceScopeParams)),
+            'today_sales' => $getSum("SELECT SUM(total) as sum FROM invoices WHERE $storeWhere $invoiceScope AND status = 'paid' AND transaction_type IN ('Sale','Exchange') AND DATE(created_at) = ?", array_merge($storeParams, $invoiceScopeParams, [date('Y-m-d')])),
             'cash_sales' => $cashSales,
             'online_sales' => $onlineSales,
             'credit_sales' => (float) ($invoiceMetrics['credit_sales'] ?? 0),

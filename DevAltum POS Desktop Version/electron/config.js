@@ -24,7 +24,7 @@ const backupsDir = path.join(userDataDir, 'backups');
 module.exports = {
     isDev,
     appName: 'DevAltum POS',
-    version: require('../package.json').version || '1.1.4',
+    version: require('../package.json').version || '1.1.5',
     rootDir,
     resourcesDir,
     userDataDir,
