@@ -17,8 +17,8 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
 <style id="dynamic-page-size-style">
     @media print {
         @page {
-            size: 110mm 25mm portrait !important;
-            margin: 0mm !important;
+            size: 110mm 25mm !important;
+            margin: 0 !important;
         }
     }
 </style>
@@ -27,16 +27,16 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
     :root {
         --roll-width: 110mm;
         --sticker-width: 34.5mm;
-        --sticker-height: 25mm;
+        --sticker-height: 24.5mm;
         --col-gap: 2mm;
-        --row-gap: 2mm;
+        --row-gap: 0.5mm;
         --side-margin: 1.25mm;
         --top-margin: 0mm;
         --left-margin: 0mm;
-        --title-font-size: 8px;
-        --price-font-size: 10px;
-        --barcode-height: 22px;
-        --barcode-bar-width: 1.15;
+        --title-font-size: 8.5px;
+        --price-font-size: 11px;
+        --barcode-height: 28px;
+        --barcode-bar-width: 1.30;
         --sticker-rotation: 0deg;
     }
 
@@ -625,8 +625,8 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
             justify-content: space-between !important;
             align-items: center !important;
             width: 100% !important;
-            height: var(--sticker-height, 25mm) !important;
-            max-height: var(--sticker-height, 25mm) !important;
+            height: var(--sticker-height, 24.5mm) !important;
+            max-height: var(--sticker-height, 24.5mm) !important;
             box-sizing: border-box !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
@@ -635,11 +635,12 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
             border: none !important;
             padding: 0 !important;
             margin: 0 auto !important;
+            overflow: hidden !important;
         }
 
         .barcode-roll-row:last-child {
-            page-break-after: avoid !important;
-            break-after: avoid !important;
+            page-break-after: auto !important;
+            break-after: auto !important;
             margin-bottom: 0 !important;
         }
 
@@ -647,8 +648,8 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
             flex: 0 0 var(--sticker-width, 34.5mm) !important;
             width: var(--sticker-width, 34.5mm) !important;
             max-width: var(--sticker-width, 34.5mm) !important;
-            height: var(--sticker-height, 25mm) !important;
-            max-height: var(--sticker-height, 25mm) !important;
+            height: var(--sticker-height, 24.5mm) !important;
+            max-height: var(--sticker-height, 24.5mm) !important;
             position: relative !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
@@ -659,6 +660,7 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
             box-shadow: none !important;
             border: none !important;
             outline: none !important;
+            text-align: center !important;
         }
 
         .sticker-inner-box {
@@ -671,37 +673,66 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
             height: 100% !important;
             display: flex !important;
             flex-direction: column !important;
-            justify-content: space-evenly !important;
+            justify-content: space-between !important;
             align-items: center !important;
             box-sizing: border-box !important;
-            padding: 1mm 1mm !important;
+            padding: 0.8mm 0.5mm !important;
         }
 
         .sticker-inner-box.rotated-vertical {
-            width: var(--sticker-height, 25mm) !important;
+            width: var(--sticker-height, 24.5mm) !important;
             height: var(--sticker-width, 34.5mm) !important;
             transform: translate(-50%, -50%) rotate(var(--sticker-rotation, 90deg)) !important;
         }
 
         .cell-title {
-            font-size: var(--title-font-size, 8px) !important;
+            font-size: var(--title-font-size, 8.5px) !important;
             font-weight: 850 !important;
             color: #000 !important;
             margin: 0 !important;
-            max-width: 95% !important;
+            max-width: 98% !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            line-height: 1.15 !important;
+            letter-spacing: -0.1px !important;
         }
 
         .cell-price {
-            font-size: var(--price-font-size, 10px) !important;
+            font-size: var(--price-font-size, 11px) !important;
             font-weight: 900 !important;
             color: #000 !important;
+            letter-spacing: -0.2px !important;
+        }
+
+        .cell-footer-row {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 4px !important;
+            line-height: 1 !important;
+        }
+
+        .cell-meta {
+            font-size: 8px !important;
+            font-weight: 700 !important;
+            color: #000 !important;
+        }
+
+        .cell-svg-wrap {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 100% !important;
+            margin: 0 auto !important;
         }
 
         .cell-svg-wrap svg {
             display: block !important;
             max-width: 98% !important;
-            height: auto !important;
+            height: var(--barcode-height, 28px) !important;
             margin: 0 auto !important;
+            shape-rendering: crispEdges !important;
         }
     }
 
@@ -992,10 +1023,10 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
         sideMargin: 1.25, // mm
         topMargin: 0,     // mm offset
         rotation: 0,      // degrees (0, 90, 180, 270)
-        barWidth: 1.15,
-        barHeight: 22,
-        titleSize: 8.0,
-        priceSize: 10.0,
+        barWidth: 1.30,
+        barHeight: 28,
+        titleSize: 8.5,
+        priceSize: 11.0,
         qty: 3
     };
 
@@ -1017,10 +1048,10 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
         document.getElementById('cfg-sticker-h').value = config.stickerH || 25;
         document.getElementById('cfg-sticker-w').value = config.stickerW || 34.5;
         document.getElementById('cfg-gap-h').value = config.gapH || 2;
-        document.getElementById('cfg-bar-width').value = config.barWidth || 1.15;
-        document.getElementById('cfg-bar-height').value = config.barHeight || 22;
-        document.getElementById('cfg-title-size').value = config.titleSize || 8.0;
-        document.getElementById('cfg-price-size').value = config.priceSize || 10.0;
+        document.getElementById('cfg-bar-width').value = config.barWidth || 1.30;
+        document.getElementById('cfg-bar-height').value = config.barHeight || 28;
+        document.getElementById('cfg-title-size').value = config.titleSize || 8.5;
+        document.getElementById('cfg-price-size').value = config.priceSize || 11.0;
         document.getElementById('cfg-top-margin').value = config.topMargin || 0;
         document.getElementById('qty-input').value = config.qty || 3;
 
@@ -1109,7 +1140,7 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
         // Update @page CSS
         const dynamicStyle = document.getElementById('dynamic-page-size-style');
         if (dynamicStyle) {
-            dynamicStyle.innerHTML = `@media print { @page { size: ${config.rollW}mm ${config.stickerH}mm portrait !important; margin: 0mm !important; } }`;
+            dynamicStyle.innerHTML = `@media print { @page { size: ${config.rollW}mm ${config.stickerH}mm !important; margin: 0 !important; } }`;
         }
 
         saveConfig();
@@ -1258,8 +1289,8 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
         container.innerHTML = html;
 
         // Render barcodes via JsBarcode
-        const barW = config.barWidth || 1.15;
-        const barH = config.barHeight || 22;
+        const barW = config.barWidth || 1.30;
+        const barH = config.barHeight || 28;
         const bFormat = config.barcodeType || 'CODE128';
 
         for (let i = 0; i < qty; i++) {
@@ -1271,7 +1302,7 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
                         width: barW,
                         height: barH,
                         displayValue: true,
-                        fontSize: 8.0,
+                        fontSize: 8.5,
                         font: 'monospace',
                         textAlign: 'center',
                         textMargin: 1.2,
@@ -1284,7 +1315,7 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
                             width: barW,
                             height: barH,
                             displayValue: true,
-                            fontSize: 8.0,
+                            fontSize: 8.5,
                             font: 'monospace',
                             textAlign: 'center',
                             textMargin: 1.2,
