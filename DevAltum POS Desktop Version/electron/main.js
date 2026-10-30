@@ -100,6 +100,9 @@ function createMainWindow(url) {
     // Remove default menu bar for clean app look
     mainWindow.setMenuBarVisibility(false);
 
+    // Auto-wipe stale HTTP/partition caches on startup so new releases load fresh and fast
+    mainWindow.webContents.session.clearCache().catch(() => {});
+
     mainWindow.loadURL(url);
 
     mainWindow.once('ready-to-show', () => {

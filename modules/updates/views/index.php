@@ -2519,6 +2519,10 @@ $designerSecMeta = [
                     </div>
                 </div>
                 <div class="designer-header-actions">
+                    <a href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/templates/index" class="btn btn-secondary" style="display:inline-flex; align-items:center; gap:6px; font-weight:700;">
+                        <span class="material-symbols-rounded" style="color:#0f6dff;">design_services</span>
+                        <span>Templates Studio</span>
+                    </a>
                     <button type="button" class="btn btn-secondary" id="reset-designer-btn">
                         <span class="material-symbols-rounded">restart_alt</span>
                         <span class="designer-btn-full">Reset Defaults</span>

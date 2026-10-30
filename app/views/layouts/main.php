@@ -349,7 +349,19 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
         }
     </style>
     <script>
-        if (sessionStorage.getItem('splash_shown')) { document.documentElement.classList.add('splash-handled'); }
+        (function() {
+            if (sessionStorage.getItem('splash_shown')) { document.documentElement.classList.add('splash-handled'); }
+            const currentAppVersion = '1.1.2';
+            const lastAppVersion = localStorage.getItem('devaltum_pos_version');
+            if (lastAppVersion && lastAppVersion !== currentAppVersion) {
+                try {
+                    sessionStorage.clear();
+                    localStorage.removeItem('last_flash_toast');
+                    localStorage.removeItem('last_flash_time');
+                } catch(e) {}
+            }
+            localStorage.setItem('devaltum_pos_version', currentAppVersion);
+        })();
     </script>
 </head>
 
@@ -545,13 +557,7 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
                     class="nav-item <?php echo ($activeMenu ?? '') === 'notifications' ? 'active' : ''; ?><?= $expCls ?>"<?= $expClick ?>>
                     <span class="material-symbols-rounded icon">notifications</span><span>Notifications</span>
                 </a>
-                <?php if (Auth::isAdmin() && !$isBranchAccount): ?>
-                <a href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/plans/index"
-                    data-title="Plan Status"
-                    class="nav-item <?php echo ($activeMenu ?? '') === 'plan_status' ? 'active' : ''; ?>">
-                    <span class="material-symbols-rounded icon">workspace_premium</span><span>Plan Status</span>
-                </a>
-                <?php endif; ?>
+
                 <?php if (Auth::isAdmin()): ?>
                 <a href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/users/index"
                     data-title="Users"

@@ -663,10 +663,15 @@ ob_start();
     }
 </style>
 
-<div class="page-header">
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
     <div>
-        <h1>Templates</h1>
-        <p class="page-subtitle">Preview and select the receipt template used across sales and credit receipts.</p>
+        <h1>Receipt Templates Studio</h1>
+        <p class="page-subtitle">Preview, customize, and edit thermal & document receipt templates for your store.</p>
+    </div>
+    <div style="display:flex; gap:10px;">
+        <a href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/templates/edit" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:6px; font-weight:800; border-radius:12px; background:linear-gradient(135deg, #0f6dff, #0052cc); box-shadow:0 4px 14px rgba(15,109,255,0.25);">
+            <span class="material-symbols-rounded">add_circle</span> New Custom Template
+        </a>
     </div>
 </div>
 
@@ -706,6 +711,9 @@ ob_start();
                                 <p><?php echo Security::escape($template['tagline']); ?></p>
                             </div>
                             <div class="template-actions">
+                                <a href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/templates/edit/<?php echo Security::escape($key); ?>" class="btn btn-secondary" style="display:inline-flex; align-items:center; gap:4px;" title="Customize & Edit Template">
+                                    <span class="material-symbols-rounded">design_services</span>Edit
+                                </a>
                                 <button class="btn btn-secondary" type="button" data-preview-template="<?php echo Security::escape($key); ?>" data-preview-base="<?php echo Security::escape((string) ($template['base_template'] ?? $key)); ?>" data-preview-accent="<?php echo Security::escape((string) ($template['accent_color'] ?? '#0f6dff')); ?>">
                                     <span class="material-symbols-rounded">visibility</span>Preview
                                 </button>

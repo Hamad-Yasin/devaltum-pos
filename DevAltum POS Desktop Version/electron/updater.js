@@ -1,5 +1,5 @@
 const { autoUpdater } = require('electron-updater');
-const { dialog, ipcMain } = require('electron');
+const { dialog, ipcMain, nativeImage } = require('electron');
 const path = require('path');
 
 class AppUpdater {
@@ -63,19 +63,30 @@ class AppUpdater {
                 message: `Update v${info.version} ready to install.`
             });
 
-            // Prompt user with native dialog
+            // Prompt user with clean, professional native dialog
+            const iconPath = path.join(__dirname, 'assets', 'icon.png');
+            let appIcon = null;
+            try {
+                appIcon = nativeImage.createFromPath(iconPath);
+            } catch (e) {}
+
             dialog.showMessageBox(this.mainWindow, {
                 type: 'info',
-                title: 'Naya Update Tayyar Hai',
-                message: `DevAltum POS ka naya version (v${info.version}) download ho chuka hai.`,
-                detail: 'Naye features apply karne ke liye application ko restart karein. Client ka tamam data bilkul safe rahega.',
-                buttons: ['Restart Now (Update Karein)', 'Baad Mein (Later)'],
+                ...(appIcon && !appIcon.isEmpty() ? { icon: appIcon } : {}),
+                title: 'DevAltum POS - Update Ready',
+                message: `DevAltum POS Update Available (v${info.version})`,
+                detail: `Version v${info.version} has been verified and downloaded.\n\nRestart now to apply the latest upgrades and enhancements. All store records, invoices, and databases remain 100% safe.`,
+                buttons: ['Restart & Install Now', 'Remind Me Later'],
                 defaultId: 0,
                 cancelId: 1,
                 noLink: true
-            }).then((result) => {
+            }).then(async (result) => {
                 if (result.response === 0) {
-                    // Quit and install immediately
+                    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                        try {
+                            await this.mainWindow.webContents.session.clearCache();
+                        } catch (e) {}
+                    }
                     setImmediate(() => autoUpdater.quitAndInstall(false, true));
                 }
             });
@@ -98,8 +109,13 @@ class AppUpdater {
         });
 
         // IPC: Renderer can trigger restart
-        ipcMain.handle('install-update', () => {
+        ipcMain.handle('install-update', async () => {
             if (this.isUpdateDownloaded) {
+                if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+                    try {
+                        await this.mainWindow.webContents.session.clearCache();
+                    } catch (e) {}
+                }
                 autoUpdater.quitAndInstall(false, true);
             }
         });

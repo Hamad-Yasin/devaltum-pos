@@ -2,9 +2,6 @@
 
 class Controller {
     protected function view($view, $data = []) {
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            session_write_close();
-        }
         View::render($view, $data);
     }
     

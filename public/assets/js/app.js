@@ -1282,14 +1282,45 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('pagehide', () => window.stopAllActiveCameraStreams?.());
     window.addEventListener('beforeunload', () => window.stopAllActiveCameraStreams?.());
 
+    const initAppAlerts = (root = document) => {
+        root.querySelectorAll('.app-alert').forEach((alert) => {
+            if (alert.dataset.dismissInit) return;
+            alert.dataset.dismissInit = 'true';
+            alert.style.transition = 'opacity 0.35s ease, transform 0.35s ease, max-height 0.35s ease';
+            
+            if (!alert.querySelector('.alert-close-btn')) {
+                const closeBtn = document.createElement('button');
+                closeBtn.type = 'button';
+                closeBtn.className = 'alert-close-btn';
+                closeBtn.innerHTML = '&times;';
+                closeBtn.style.cssText = 'margin-left:auto; background:none; border:none; font-size:20px; line-height:1; cursor:pointer; color:inherit; opacity:0.6; padding:0 4px;';
+                closeBtn.onclick = () => {
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 350);
+                };
+                alert.appendChild(closeBtn);
+            }
+
+            setTimeout(() => {
+                if (alert && alert.parentElement) {
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateY(-4px)';
+                    setTimeout(() => alert.remove(), 350);
+                }
+            }, 4000);
+        });
+    };
+    initAppAlerts();
+    window.appInitAppAlerts = initAppAlerts;
+
     const triggerFlashToast = (flash) => {
         if (!flash || !flash.message) return;
         const flashKey = `${flash.type || 'info'}_${flash.message}`;
         const lastShownKey = sessionStorage.getItem('last_flash_toast');
         const lastShownTime = Number(sessionStorage.getItem('last_flash_time') || 0);
         const now = Date.now();
-        // Prevent duplicate flash toast if the exact same message was shown in the last 10 seconds
-        if (lastShownKey === flashKey && (now - lastShownTime < 10000)) {
+        // Prevent duplicate flash toast if the exact same message was shown in the last 15 seconds
+        if (lastShownKey === flashKey && (now - lastShownTime < 15000)) {
             return;
         }
         sessionStorage.setItem('last_flash_toast', flashKey);
@@ -1438,6 +1469,7 @@ document.addEventListener('DOMContentLoaded', () => {
             syncCustomDateFields(contentArea);
             executeScriptsInNode(contentArea);
             runExtraJs(data.extraJs, contentArea);
+            initAppAlerts(contentArea);
 
             if (data.csrfToken) {
                 window.appCsrfToken = data.csrfToken;
@@ -1458,7 +1490,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     dashboard: 'home/index', pos: 'pos/index', sales: 'sales/index',
                     credits: 'credits/index', inventory: 'inventory/index', expenses: 'expenses/index',
                     customers: 'customers/index', reports: 'reports/index', users: 'users/index', settings: 'updates/index',
-                    quotations: 'quotations/index', plan_status: 'plans/index'
+                    quotations: 'quotations/index', templates: 'templates/index'
                 };
                 const menuTarget = menuMap[data.activeMenu] || data.activeMenu;
                 if (data.activeMenu && item.href && item.href.includes(menuTarget)) {
