@@ -8,6 +8,7 @@ if ($isAjax) {
         'extraJs' => $extraJs ?? '',
         'pageTitle' => $pageTitle ?? 'DevAltum POS',
         'activeMenu' => $activeMenu ?? '',
+        'csrfToken' => Security::generateCsrfToken(),
         'flash' => App::pullFlash()
     ], JSON_INVALID_UTF8_SUBSTITUTE);
 
@@ -1161,31 +1162,8 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
     </script>
     <?php endif; ?>
 
-    <script>
-        // Instant responsive profile & dropdown event delegation
-        document.addEventListener('click', function(e) {
-            const toggle = e.target.closest('.dropdown-toggle');
-            if (toggle) {
-                e.preventDefault();
-                e.stopPropagation();
-                const dropdown = toggle.closest('.dropdown');
-                const menu = dropdown ? dropdown.querySelector('.dropdown-menu') : null;
-                const wasOpen = menu ? menu.classList.contains('open') : false;
-                document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
-                if (menu && !wasOpen) {
-                    menu.classList.add('open');
-                }
-                return;
-            }
-
-            if (!e.target.closest('.dropdown') && !e.target.closest('#quickStoreNameModal')) {
-                document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
-            }
-        });
-    </script>
-
-    <!-- DevAltum POS Premium Draggable Floating Update Widget -->
-    <div id="pos-draggable-update-widget" style="position: fixed; z-index: 99998; touch-action: none; cursor: grab; user-select: none;">
+    <!-- DevAltum POS Premium Draggable Floating Update Widget (Hidden by default, only shown when 100% downloaded) -->
+    <div id="pos-draggable-update-widget" style="display: none; position: fixed; z-index: 99998; touch-action: none; cursor: grab; user-select: none;">
         <!-- Widget Floating Pill -->
         <div id="widget-main-pill" style="display: flex; align-items: center; gap: 8px; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 255, 255, 0.16); padding: 7px 14px 7px 9px; border-radius: 30px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.05); transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;">
             <!-- Icon with pulse indicator -->
@@ -1370,29 +1348,9 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
 
             window.desktopAPI.onUpdateStatus(data => {
                 if (!data) return;
-                if (data.status === 'checking') {
-                    statusText.textContent = 'Checking...';
-                    pulseDot.style.background = '#3b82f6';
-                    panelBadge.textContent = 'Checking...';
-                    panelBadge.style.color = '#60a5fa';
-                    panelDesc.textContent = 'Checking GitHub releases for latest build...';
-                }
-                else if (data.status === 'available') {
-                    statusText.textContent = 'Downloading...';
-                    pulseDot.style.background = '#f59e0b';
-                    panelBadge.textContent = 'v' + (data.version || '') + ' Available';
-                    panelBadge.style.color = '#fbbf24';
-                    panelDesc.textContent = 'New update is downloading in the background.';
-                    progressContainer.style.display = 'block';
-                }
-                else if (data.status === 'not-available') {
-                    pulseDot.style.background = '#10b981';
-                    panelBadge.textContent = 'Up to Date';
-                    panelBadge.style.color = '#34d399';
-                    panelDesc.textContent = 'You are running the verified latest release.';
-                    progressContainer.style.display = 'none';
-                }
-                else if (data.status === 'downloaded') {
+                if (data.status === 'downloaded') {
+                    // Update is 100% downloaded and ready to install -> Reveal floating pill!
+                    widget.style.display = 'block';
                     statusText.textContent = 'Update Ready!';
                     pulseDot.style.background = '#10b981';
                     pulseDot.style.boxShadow = '0 0 10px #10b981';
@@ -1401,6 +1359,25 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
                     panelDesc.textContent = `Version v${data.version || ''} downloaded. Restart to apply.`;
                     progressContainer.style.display = 'none';
                     if (restartBtn) restartBtn.style.display = 'block';
+                }
+                else {
+                    // Hidden during idle, checking, or up-to-date
+                    widget.style.display = 'none';
+                    if (data.status === 'available') {
+                        statusText.textContent = 'Downloading...';
+                        pulseDot.style.background = '#f59e0b';
+                        panelBadge.textContent = 'v' + (data.version || '') + ' Available';
+                        panelBadge.style.color = '#fbbf24';
+                        panelDesc.textContent = 'New update is downloading in the background.';
+                        progressContainer.style.display = 'block';
+                    }
+                    else if (data.status === 'not-available') {
+                        pulseDot.style.background = '#10b981';
+                        panelBadge.textContent = 'Up to Date';
+                        panelBadge.style.color = '#34d399';
+                        panelDesc.textContent = 'You are running the verified latest release.';
+                        progressContainer.style.display = 'none';
+                    }
                 }
             });
 

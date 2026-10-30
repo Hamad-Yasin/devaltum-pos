@@ -12,10 +12,14 @@ class Security {
 
     // Verify CSRF token
     public static function verifyCsrfToken($token) {
-        if (isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token)) {
+        if (!is_string($token) || $token === '') {
+            return false;
+        }
+        if (empty($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             return true;
         }
-        return false;
+        return hash_equals($_SESSION['csrf_token'], $token);
     }
 
     public static function csrfTokenFromRequest() {

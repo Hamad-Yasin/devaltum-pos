@@ -333,8 +333,8 @@ class UpdatesController extends Controller {
             }
         }
 
-        // Store owner convenience: if they update WhatsApp number in settings,
-        // sync it to stores.phone so billing/reminder modules stay aligned.
+        // Store owner convenience: if they update WhatsApp number or Store Name in settings,
+        // sync it to stores so billing/reminder modules and Header Profile stay aligned.
         $storeId = (int) Tenant::currentStoreId();
         if ($storeId > 0) {
             $storeWhatsapp = trim((string) ($pairs['whatsapp_number'] ?? ''));
@@ -343,6 +343,17 @@ class UpdatesController extends Controller {
                     "UPDATE stores SET phone = ?, updated_at = NOW() WHERE id = ?",
                     [$storeWhatsapp, $storeId]
                 );
+            }
+            if (!empty($pairs['company_name'])) {
+                $compName = trim((string) $pairs['company_name']);
+                Database::getInstance()->query(
+                    "UPDATE stores SET store_name = ?, updated_at = NOW() WHERE id = ?",
+                    [$compName, $storeId]
+                );
+                $_SESSION['store_name'] = $compName;
+                if (class_exists('Tenant')) {
+                    Tenant::clearStoreCache();
+                }
             }
         }
 

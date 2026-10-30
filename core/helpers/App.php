@@ -1263,6 +1263,26 @@ class App {
     public static function saveSettings($pairs) {
         $db = Database::getInstance();
         $storeId = Tenant::currentStoreId();
+
+        // Always sync business / store name across stores table and session so Header & UI reflect it immediately
+        if (isset($pairs['company_name'])) {
+            $companyName = trim((string) $pairs['company_name']);
+            if ($companyName !== '') {
+                $_SESSION['store_name'] = $companyName;
+                if ($storeId !== null && $storeId > 0) {
+                    $db->query("UPDATE stores SET store_name = ?, updated_at = NOW() WHERE id = ?", [$companyName, $storeId]);
+                } else {
+                    $firstStore = $db->fetch("SELECT id FROM stores ORDER BY id ASC LIMIT 1");
+                    if ($firstStore) {
+                        $db->query("UPDATE stores SET store_name = ?, updated_at = NOW() WHERE id = ?", [$companyName, $firstStore['id']]);
+                    }
+                }
+                if (class_exists('Tenant')) {
+                    Tenant::clearStoreCache();
+                }
+            }
+        }
+
         if ($storeId !== null && $storeId > 0) {
             if (Tenant::isBranchAccount()) {
                 unset($pairs['company_name']);

@@ -106,10 +106,7 @@ class AuthController extends Controller {
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-                $this->flash('error', 'Security token mismatch. Please try again.');
-                $this->redirect('auth/profile');
-            }
+            $this->verifyCsrfOrAbort();
 
             if ($isProtectedPrimarySuperAdmin) {
                 $this->flash('error', 'Primary Super Admin account is read-only and cannot be edited.');

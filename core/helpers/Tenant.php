@@ -48,6 +48,11 @@ class Tenant {
         return self::$storeContext;
     }
 
+    public static function clearStoreCache() {
+        self::$storeContext = null;
+        self::$storeContextId = null;
+    }
+
     public static function isBranchAccount() {
         $store = self::currentStore();
         return (int) ($store['parent_store_id'] ?? 0) > 0;

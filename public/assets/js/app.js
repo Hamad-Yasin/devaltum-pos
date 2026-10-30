@@ -10,7 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const currencySymbol = document.body.dataset.currencySymbol || 'Rs';
     const tabSessionId = document.body.dataset.tabSession || '';
     const offlineQueueKey = 'devaltum_offline_queue';
-    const csrfToken = document.body?.dataset?.csrfToken || '';
+    let csrfToken = document.body?.dataset?.csrfToken || '';
+    window.appCsrfToken = csrfToken;
+    const getCsrfToken = () => window.appCsrfToken || document.body?.dataset?.csrfToken || csrfToken || '';
     let searchTimeout = null;
 
     const formatMoney = (value) => {
@@ -668,7 +670,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const toggle = event.target.closest('.dropdown-toggle');
         if (toggle) {
             const key = toggle.dataset.dropdown;
-            const menu = document.querySelector(`[data-dropdown-menu="${key}"]`);
+            const menu = toggle.closest('.dropdown')?.querySelector('.dropdown-menu') || document.querySelector(`[data-dropdown-menu="${key}"]`);
             const isOpen = menu?.classList.contains('open');
             closeDropdowns();
             if (menu && !isOpen) {
@@ -1362,7 +1364,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (data.ajax_redirect) {
-                triggerFlashToast(data.flash);
+                if (data.csrfToken) {
+                window.appCsrfToken = data.csrfToken;
+                csrfToken = data.csrfToken;
+                if (document.body) {
+                    document.body.dataset.csrfToken = data.csrfToken;
+                }
+                document.querySelectorAll('input[name="csrf_token"]').forEach(input => {
+                    input.value = data.csrfToken;
+                });
+            }
+
+            triggerFlashToast(data.flash);
                 return loadPage(data.ajax_redirect, pushState);
             }
             
@@ -1425,6 +1438,17 @@ document.addEventListener('DOMContentLoaded', () => {
             syncCustomDateFields(contentArea);
             executeScriptsInNode(contentArea);
             runExtraJs(data.extraJs, contentArea);
+
+            if (data.csrfToken) {
+                window.appCsrfToken = data.csrfToken;
+                csrfToken = data.csrfToken;
+                if (document.body) {
+                    document.body.dataset.csrfToken = data.csrfToken;
+                }
+                document.querySelectorAll('input[name="csrf_token"]').forEach(input => {
+                    input.value = data.csrfToken;
+                });
+            }
 
             triggerFlashToast(data.flash);
 
@@ -1553,7 +1577,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (data.ajax_redirect) {
-                    triggerFlashToast(data.flash);
+                    if (data.csrfToken) {
+                window.appCsrfToken = data.csrfToken;
+                csrfToken = data.csrfToken;
+                if (document.body) {
+                    document.body.dataset.csrfToken = data.csrfToken;
+                }
+                document.querySelectorAll('input[name="csrf_token"]').forEach(input => {
+                    input.value = data.csrfToken;
+                });
+            }
+
+            triggerFlashToast(data.flash);
                     return loadPage(data.ajax_redirect, true);
                 }
                 
@@ -1616,7 +1651,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 executeScriptsInNode(contentArea);
                 runExtraJs(data.extraJs, contentArea);
                 
-                triggerFlashToast(data.flash);
+                if (data.csrfToken) {
+                window.appCsrfToken = data.csrfToken;
+                csrfToken = data.csrfToken;
+                if (document.body) {
+                    document.body.dataset.csrfToken = data.csrfToken;
+                }
+                document.querySelectorAll('input[name="csrf_token"]').forEach(input => {
+                    input.value = data.csrfToken;
+                });
+            }
+
+            triggerFlashToast(data.flash);
 
                 if (res.redirected) {
                     history.pushState({ url: res.url }, '', res.url);
@@ -1658,6 +1704,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
                 return;
+            }
+        }
+
+        // Ensure CSRF token is present and fresh on all form submissions
+        let csrfInput = form.querySelector('input[name="csrf_token"]');
+        const activeToken = getCsrfToken();
+        if (activeToken) {
+            if (!csrfInput) {
+                csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                csrfInput.value = activeToken;
+                form.appendChild(csrfInput);
+            } else if (!csrfInput.value) {
+                csrfInput.value = activeToken;
             }
         }
 
