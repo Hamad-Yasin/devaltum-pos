@@ -90,7 +90,7 @@ class UpdatesController extends Controller {
 
     public function software() {
         $packageJsonPath = dirname(__DIR__, 2) . '/DevAltum POS Desktop Version/package.json';
-        $currentVersion = '1.1.0';
+        $currentVersion = '1.1.2';
         if (file_exists($packageJsonPath)) {
             $pkgData = json_decode(file_get_contents($packageJsonPath), true);
             if (!empty($pkgData['version'])) {
