@@ -685,7 +685,13 @@ $gateways = $gateways ?? [];
             </div>
         </div>
 
-        <div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <!-- Dedicated Balances Manager Button -->
+            <a href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/cashflow/balances" class="btn-solid-emerald btn-md" style="text-decoration:none;">
+                <span class="material-symbols-rounded">tune</span>
+                Manage Cash & Account Balances
+            </a>
+
             <!-- Solid Blue Export Button with White Text -->
             <a href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/cashflow/export?<?= http_build_query($filters) ?>" class="btn-solid-blue btn-md">
                 <span class="material-symbols-rounded">download</span>
@@ -852,10 +858,10 @@ $gateways = $gateways ?? [];
                         <input type="text" name="party_name" class="cf-input" placeholder="e.g. Ali Ahmed">
                     </div>
 
-                    <!-- 6. TID Reference (Optional) -->
+                    <!-- 6. Account Number / IBAN Number / TID -->
                     <div class="cf-field-group">
-                        <label class="cf-field-label">TID / Reference # (Optional)</label>
-                        <input type="text" name="reference_no" class="cf-input" placeholder="e.g. 984729104">
+                        <label class="cf-field-label">Account # / IBAN Number / TID (Optional)</label>
+                        <input type="text" name="reference_no" class="cf-input" placeholder="e.g. PK36MEZN... / TID #984729">
                     </div>
 
                     <!-- 7. Solid Emerald Submit Button with White Text -->
@@ -926,7 +932,7 @@ $gateways = $gateways ?? [];
 
                 <!-- Search Input -->
                 <div style="flex:1; min-width:180px;">
-                    <input type="text" name="q" value="<?= Security::escape($filters['q']) ?>" placeholder="Search TID, customer, description..." class="cf-input" style="height:34px; font-size:12px; width:100%;">
+                    <input type="text" name="q" value="<?= Security::escape($filters['q']) ?>" placeholder="Search Account #, IBAN, TID, customer..." class="cf-input" style="height:34px; font-size:12px; width:100%;">
                 </div>
 
                 <!-- Solid Dark Filter Button with White Text -->
@@ -958,7 +964,7 @@ $gateways = $gateways ?? [];
                             <th style="text-align:right;">Amount</th>
                             <th style="text-align:right;">Fee</th>
                             <th>Handler</th>
-                            <th style="width:80px; text-align:center;">Slip</th>
+                            <th style="width:120px; text-align:center;">Voucher & Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1047,10 +1053,20 @@ $gateways = $gateways ?? [];
                                         <?= Security::escape($tx['cashier_name'] ?: 'Staff') ?>
                                     </td>
                                     <td style="text-align:center;">
-                                        <!-- Solid Blue Print Slip Button with Pure White Text -->
-                                        <button class="btn-solid-blue btn-xs" onclick='printVoucherSlip(<?= json_encode($tx) ?>)' title="Print Slip Voucher">
-                                            <span class="material-symbols-rounded" style="font-size:15px;">print</span>
-                                        </button>
+                                        <div style="display:inline-flex; align-items:center; gap:4px;">
+                                            <!-- View Slip Voucher Button -->
+                                            <button type="button" class="btn-solid-emerald btn-xs" onclick='viewVoucherModal(<?= json_encode($tx) ?>)' title="View Slip Voucher" style="padding:0 6px;">
+                                                <span class="material-symbols-rounded" style="font-size:15px;">visibility</span>
+                                            </button>
+                                            <!-- Print Slip Voucher Button -->
+                                            <button type="button" class="btn-solid-blue btn-xs" onclick='printVoucherSlip(<?= json_encode($tx) ?>)' title="Print Slip Voucher" style="padding:0 6px;">
+                                                <span class="material-symbols-rounded" style="font-size:15px;">print</span>
+                                            </button>
+                                            <!-- Delete / Reverse Transaction Button -->
+                                            <button type="button" class="btn-solid-rose btn-xs" onclick='confirmDeleteTx(<?= (int)$tx['id'] ?>, <?= (float)$tx['amount'] ?>, "<?= Security::escape($tx['transaction_type']) ?>")' title="Reverse Transaction" style="padding:0 6px;">
+                                                <span class="material-symbols-rounded" style="font-size:15px;">delete</span>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -1445,7 +1461,155 @@ $gateways = $gateways ?? [];
         `);
         printWindow.document.close();
     }
+
+    // View Voucher Modal
+    let activeVoucherTx = null;
+    function viewVoucherModal(tx) {
+        if (!tx) return;
+        activeVoucherTx = tx;
+        const modal = document.getElementById('modal-voucher-preview');
+        const currency = '<?= $currency ?>';
+        
+        document.getElementById('vp-id').textContent = `#TX-${tx.id}`;
+        document.getElementById('vp-date').textContent = tx.transaction_date;
+        document.getElementById('vp-type').textContent = (tx.transaction_type || '').toUpperCase().replace('_', ' ');
+        document.getElementById('vp-from').textContent = tx.from_account_name || 'External / Till';
+        document.getElementById('vp-to').textContent = tx.to_account_name || 'External / Online';
+        document.getElementById('vp-amount').textContent = `${currency} ${Number(tx.amount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+        
+        const fee = Number(tx.fee_amount || 0);
+        const feeRow = document.getElementById('vp-fee-row');
+        if (fee > 0) {
+            feeRow.style.display = 'flex';
+            document.getElementById('vp-fee').textContent = `+ ${currency} ${fee.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+        } else {
+            feeRow.style.display = 'none';
+        }
+
+        document.getElementById('vp-party').textContent = tx.party_name || 'Walk-in Customer';
+        document.getElementById('vp-phone').textContent = tx.party_phone || 'N/A';
+        document.getElementById('vp-ref').textContent = tx.reference_no || 'N/A';
+        document.getElementById('vp-desc').textContent = tx.description || 'No description provided.';
+        document.getElementById('vp-staff').textContent = tx.cashier_name || 'Staff';
+
+        modal.style.display = 'grid';
+    }
+
+    function closeVoucherModal() {
+        document.getElementById('modal-voucher-preview').style.display = 'none';
+    }
+
+    function printActiveVoucher() {
+        if (activeVoucherTx) {
+            printVoucherSlip(activeVoucherTx);
+        }
+    }
+
+    // Confirm Delete Transaction
+    function confirmDeleteTx(id, amount, type) {
+        const currency = '<?= $currency ?>';
+        const msg = `Are you sure you want to reverse and delete Transaction #TX-${id}?\n\nAmount: ${currency} ${Number(amount).toFixed(2)}\nType: ${type}\n\nThe amount will be safely restored back to the respective accounts.`;
+        if (confirm(msg)) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `${baseUrl}/cashflow/deleteTransaction`;
+
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = 'csrf_token';
+            csrf.value = '<?= Security::csrfToken() ?>';
+            form.appendChild(csrf);
+
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'id';
+            idInput.value = id;
+            form.appendChild(idInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
 </script>
+
+<!-- ========================================================
+     MODAL: VIEW SLIP VOUCHER PREVIEW
+     ======================================================== -->
+<div id="modal-voucher-preview" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.65); backdrop-filter:blur(4px); z-index:99999; place-items:center; padding:16px;">
+    <div style="background:#ffffff; border-radius:16px; width:100%; max-width:480px; box-shadow:0 25px 50px -12px rgba(15,23,42,0.25); overflow:hidden;">
+        <!-- Modal Top -->
+        <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:34px; height:34px; border-radius:8px; background:#dcfce7; color:#15803d; display:grid; place-items:center;">
+                    <span class="material-symbols-rounded" style="font-size:18px;">receipt_long</span>
+                </div>
+                <div>
+                    <h3 style="font-size:15px; font-weight:800; margin:0; color:#0f172a;">Transaction Slip Voucher</h3>
+                    <div style="font-size:11px; color:#64748b;" id="vp-id">#TX-000</div>
+                </div>
+            </div>
+            <button type="button" onclick="closeVoucherModal()" style="border:none; background:none; color:#94a3b8; cursor:pointer;">
+                <span class="material-symbols-rounded">close</span>
+            </button>
+        </div>
+
+        <!-- Voucher Body -->
+        <div style="padding:22px;">
+            <!-- Amount & Pathway Banner -->
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; text-align:center; margin-bottom:18px;">
+                <div style="font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; color:#64748b; margin-bottom:4px;" id="vp-type">MONEY EXCHANGE</div>
+                <div style="font-size:26px; font-weight:900; color:#0f172a; letter-spacing:-0.03em; margin-bottom:8px;" id="vp-amount">Rs 0.00</div>
+                
+                <div style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:12px; font-weight:700;">
+                    <span style="color:#be123c;" id="vp-from">Drawer</span>
+                    <span class="material-symbols-rounded" style="font-size:14px; color:#94a3b8;">arrow_forward</span>
+                    <span style="color:#047857;" id="vp-to">Online</span>
+                </div>
+            </div>
+
+            <!-- Detail Rows -->
+            <div style="display:flex; flex-direction:column; gap:8px; font-size:12.5px;">
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding-bottom:6px;">
+                    <span style="color:#64748b; font-weight:600;">Timestamp:</span>
+                    <strong style="color:#0f172a;" id="vp-date">-</strong>
+                </div>
+                <div id="vp-fee-row" style="display:none; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding-bottom:6px;">
+                    <span style="color:#64748b; font-weight:600;">Fee / Commission:</span>
+                    <strong style="color:#059669;" id="vp-fee">-</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding-bottom:6px;">
+                    <span style="color:#64748b; font-weight:600;">Customer / Party:</span>
+                    <strong style="color:#0f172a;" id="vp-party">-</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding-bottom:6px;">
+                    <span style="color:#64748b; font-weight:600;">Phone Number:</span>
+                    <strong style="color:#0f172a;" id="vp-phone">-</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding-bottom:6px;">
+                    <span style="color:#64748b; font-weight:600;">Account / IBAN / TID:</span>
+                    <strong style="color:#0f172a; font-family:monospace; font-size:12px; background:#f1f5f9; padding:1px 6px; border-radius:4px;" id="vp-ref">-</strong>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding-bottom:6px;">
+                    <span style="color:#64748b; font-weight:600;">Description:</span>
+                    <span style="color:#334155; font-size:11.5px; text-align:right; max-width:260px;" id="vp-desc">-</span>
+                </div>
+                <div style="display:flex; justify-content:space-between;">
+                    <span style="color:#64748b; font-weight:600;">Handled By Staff:</span>
+                    <strong style="color:#0f172a;" id="vp-staff">-</strong>
+                </div>
+            </div>
+
+            <!-- Modal Action Buttons -->
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; padding-top:14px; border-top:1px solid #f1f5f9;">
+                <button type="button" class="btn-solid-gray btn-md" onclick="closeVoucherModal()">Close</button>
+                <button type="button" class="btn-solid-blue btn-md" onclick="printActiveVoucher()">
+                    <span class="material-symbols-rounded">print</span>
+                    Print Thermal Slip
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php
 $content = ob_get_clean();
