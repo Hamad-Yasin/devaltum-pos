@@ -50,7 +50,7 @@ class CashflowController extends Controller {
         $accountFilter = (int) ($_GET['account_id'] ?? 0);
         $typeFilter = trim($_GET['type'] ?? '');
         $q = trim($_GET['q'] ?? '');
-        $activeTab = trim($_GET['tab'] ?? 'roznamcha');
+        $activeTab = trim($_GET['tab'] ?? 'balances');
 
         if (!in_array($dateFilter, ['today', 'yesterday', 'this_week', 'this_month', 'all', 'custom'], true)) {
             $dateFilter = 'this_month';
@@ -266,8 +266,22 @@ class CashflowController extends Controller {
             'exchange_fees_earned' => $exchangeFeesEarned
         ];
 
+        // Recent balance audit adjustments
+        $recentAdjustments = $db->fetchAll("
+            SELECT c.*, 
+                   COALESCE(fa_to.account_name, fa_from.account_name, 'Account') AS account_name, 
+                   u.name AS staff_name
+            FROM cashflow_transactions c
+            LEFT JOIN financial_accounts fa_to ON fa_to.id = c.to_account_id
+            LEFT JOIN financial_accounts fa_from ON fa_from.id = c.from_account_id
+            LEFT JOIN users u ON u.id = c.user_id
+            WHERE c.store_id = ? AND c.transaction_type IN ('adjustment_in', 'adjustment_out')
+            ORDER BY c.transaction_date DESC, c.id DESC
+            LIMIT 15
+        ", [$storeId]);
+
         $this->view('../../modules/cashflow/views/index', [
-            'pageTitle' => 'Cashflow Management',
+            'pageTitle' => 'Cashflow & Financial Accounts',
             'activeMenu' => 'cashflow',
             'accounts' => $accounts,
             'transactions' => $transactions,
@@ -275,7 +289,12 @@ class CashflowController extends Controller {
             'receivablesList' => $receivablesList,
             'payablesList' => $payablesList,
             'filters' => compact('from', 'to', 'dateFilter', 'accountFilter', 'typeFilter', 'q', 'activeTab'),
-            'gateways' => $gateways
+            'gateways' => $gateways,
+            'recentAdjustments' => $recentAdjustments,
+            'defaultCashAcc' => $defaultCashAcc,
+            'liveCashInHand' => $liveCashInHand,
+            'totalOnlineBalance' => $liveOnlineBalance,
+            'totalLiquid' => $totalLiquid
         ]);
     }
 
@@ -568,7 +587,7 @@ class CashflowController extends Controller {
      */
     public function createAccount() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('cashflow/balances');
+            $this->redirect('cashflow/index?tab=balances');
         }
         $this->verifyCsrfOrAbort();
 
@@ -584,7 +603,7 @@ class CashflowController extends Controller {
 
         if ($accountName === '') {
             $this->flash('error', 'Account Name is required.');
-            $this->redirect('cashflow/balances');
+            $this->redirect('cashflow/index?tab=balances');
         }
 
         if (!in_array($accountType, ['cash', 'bank', 'wallet', 'other'], true)) {
@@ -607,7 +626,7 @@ class CashflowController extends Controller {
         ]);
 
         $this->flash('success', "New Account '$accountName' added successfully.");
-        $this->redirect('cashflow/balances');
+        $this->redirect('cashflow/index?tab=balances');
     }
 
     /**
@@ -615,7 +634,7 @@ class CashflowController extends Controller {
      */
     public function editAccount($id) {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('cashflow/balances');
+            $this->redirect('cashflow/index?tab=balances');
         }
         $this->verifyCsrfOrAbort();
 
@@ -632,7 +651,7 @@ class CashflowController extends Controller {
 
         if ($accountName === '' || $id <= 0) {
             $this->flash('error', 'Invalid account data.');
-            $this->redirect('cashflow/balances');
+            $this->redirect('cashflow/index?tab=balances');
         }
 
         $db->query("
@@ -651,105 +670,14 @@ class CashflowController extends Controller {
         ]);
 
         $this->flash('success', "Account updated successfully.");
-        $this->redirect('cashflow/balances');
+        $this->redirect('cashflow/index?tab=balances');
     }
 
     /**
-     * Dedicated Page: Drawer & Account Balances Manager
+     * Dedicated Page: Drawer & Account Balances Manager (Redirects smoothly to unified Cashflow Balances Tab)
      */
     public function balances() {
-        $db = Database::getInstance();
-        $storeId = Tenant::currentStoreId();
-
-        // 1. Fetch all accounts with live calculations
-        $accounts = $db->fetchAll("
-            SELECT * FROM financial_accounts 
-            WHERE store_id = ? 
-            ORDER BY is_default DESC, account_type = 'cash' DESC, account_name ASC
-        ", [$storeId]);
-
-        // If no default cash drawer account exists, create it
-        if (empty($accounts)) {
-            $db->query("INSERT INTO financial_accounts (store_id, account_name, account_type, account_number, bank_name, opening_balance, current_balance, is_default, status) VALUES (?, 'Cash in Hand (Counter Drawer)', 'cash', 'DRAWER-01', 'Cash Till', 0.00, 0.00, 1, 'active')", [$storeId]);
-            $accounts = $db->fetchAll("SELECT * FROM financial_accounts WHERE store_id = ? ORDER BY is_default DESC, id ASC", [$storeId]);
-        }
-
-        // Live Drawer Calculation
-        $defaultCashAcc = null;
-        foreach ($accounts as $acc) {
-            if ((int)$acc['is_default'] === 1 || $acc['account_type'] === 'cash') {
-                $defaultCashAcc = $acc;
-                break;
-            }
-        }
-        $cashAccId = $defaultCashAcc ? (int)$defaultCashAcc['id'] : 0;
-
-        $cashSalesSum = (float) (($db->fetch("SELECT SUM(paid_amount) AS sum FROM invoices WHERE store_id = ? AND status = 'paid' AND payment_method = 'cash'", [$storeId])['sum'] ?? 0));
-        $cashCreditRecv = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM credit_payments WHERE store_id = ? AND payment_method = 'cash'", [$storeId])['sum'] ?? 0));
-        $cashExpenses = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM expenses WHERE store_id = ? AND payment_method = 'cash'", [$storeId])['sum'] ?? 0));
-        $cashSupplierPayments = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM supplier_payments WHERE store_id = ? AND payment_method = 'cash'", [$storeId])['sum'] ?? 0));
-        $exchangeCashGiven = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'money_exchange' AND from_account_id = ?", [$storeId, $cashAccId])['sum'] ?? 0));
-        $exchangeCashReceived = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'money_exchange' AND to_account_id = ?", [$storeId, $cashAccId])['sum'] ?? 0));
-        $exchangeFeesEarned = (float) (($db->fetch("SELECT SUM(fee_amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'money_exchange'", [$storeId])['sum'] ?? 0));
-        $transferInToCash = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'transfer' AND to_account_id = ?", [$storeId, $cashAccId])['sum'] ?? 0));
-        $transferOutFromCash = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'transfer' AND from_account_id = ?", [$storeId, $cashAccId])['sum'] ?? 0));
-        $adjustInCash = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'adjustment_in' AND to_account_id = ?", [$storeId, $cashAccId])['sum'] ?? 0));
-        $adjustOutCash = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'adjustment_out' AND from_account_id = ?", [$storeId, $cashAccId])['sum'] ?? 0));
-
-        $cashOpening = (float) ($defaultCashAcc['opening_balance'] ?? 0);
-        $liveCashInHand = ($cashOpening + $cashSalesSum + $cashCreditRecv + $exchangeCashReceived + $transferInToCash + $adjustInCash + $exchangeFeesEarned)
-                        - ($cashExpenses + $cashSupplierPayments + $exchangeCashGiven + $transferOutFromCash + $adjustOutCash);
-
-        if ($defaultCashAcc) {
-            $db->query("UPDATE financial_accounts SET current_balance = ? WHERE id = ?", [$liveCashInHand, $cashAccId]);
-        }
-
-        // Live Online Balances Calculation per account
-        $totalOnlineBalance = 0.0;
-        foreach ($accounts as &$acc) {
-            $accId = (int)$acc['id'];
-            if ($acc['account_type'] === 'cash' || $accId === $cashAccId) {
-                $acc['current_balance'] = $liveCashInHand;
-            } else {
-                $accOpening = (float)$acc['opening_balance'];
-                $accIn = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND to_account_id = ?", [$storeId, $accId])['sum'] ?? 0));
-                $accOut = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND from_account_id = ?", [$storeId, $accId])['sum'] ?? 0));
-                $accBal = $accOpening + $accIn - $accOut;
-                $acc['current_balance'] = $accBal;
-                $db->query("UPDATE financial_accounts SET current_balance = ? WHERE id = ?", [$accBal, $accId]);
-                if ($acc['status'] === 'active') {
-                    $totalOnlineBalance += $accBal;
-                }
-            }
-        }
-        unset($acc);
-
-        $totalLiquid = $liveCashInHand + $totalOnlineBalance;
-
-        // Recent balance audit adjustments
-        $recentAdjustments = $db->fetchAll("
-            SELECT c.*, 
-                   COALESCE(fa_to.account_name, fa_from.account_name, 'Account') AS account_name, 
-                   u.name AS staff_name
-            FROM cashflow_transactions c
-            LEFT JOIN financial_accounts fa_to ON fa_to.id = c.to_account_id
-            LEFT JOIN financial_accounts fa_from ON fa_from.id = c.from_account_id
-            LEFT JOIN users u ON u.id = c.user_id
-            WHERE c.store_id = ? AND c.transaction_type IN ('adjustment_in', 'adjustment_out')
-            ORDER BY c.transaction_date DESC, c.id DESC
-            LIMIT 15
-        ", [$storeId]);
-
-        $this->view('../../modules/cashflow/views/balances', [
-            'pageTitle' => 'Cash & Account Balances Manager',
-            'activeMenu' => 'cashflow',
-            'accounts' => $accounts,
-            'defaultCashAcc' => $defaultCashAcc,
-            'liveCashInHand' => $liveCashInHand,
-            'totalOnlineBalance' => $totalOnlineBalance,
-            'totalLiquid' => $totalLiquid,
-            'recentAdjustments' => $recentAdjustments
-        ]);
+        $this->redirect('cashflow/index?tab=balances');
     }
 
     /**
@@ -757,7 +685,7 @@ class CashflowController extends Controller {
      */
     public function setBalance() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('cashflow/balances');
+            $this->redirect('cashflow/index?tab=balances');
         }
         $this->verifyCsrfOrAbort();
 
@@ -773,13 +701,13 @@ class CashflowController extends Controller {
 
         if ($accountId <= 0) {
             $this->flash('error', 'Please select a valid account.');
-            $this->redirect('cashflow/balances');
+            $this->redirect('cashflow/index?tab=balances');
         }
 
         $account = $db->fetch("SELECT * FROM financial_accounts WHERE id = ? AND store_id = ?", [$accountId, $storeId]);
         if (!$account) {
             $this->flash('error', 'Account not found.');
-            $this->redirect('cashflow/balances');
+            $this->redirect('cashflow/index?tab=balances');
         }
 
         $currentBal = (float)$account['current_balance'];
@@ -789,7 +717,7 @@ class CashflowController extends Controller {
             $diff = $targetAmount - $currentBal;
             if (abs($diff) < 0.001) {
                 $this->flash('info', 'Current balance is already ' . number_format($targetAmount, 2));
-                $this->redirect('cashflow/balances');
+                $this->redirect('cashflow/index?tab=balances');
             }
 
             if ($diff > 0) {
@@ -808,7 +736,7 @@ class CashflowController extends Controller {
         } elseif ($mode === 'add_cash') {
             if ($targetAmount <= 0) {
                 $this->flash('error', 'Amount must be greater than 0.');
-                $this->redirect('cashflow/balances');
+                $this->redirect('cashflow/index?tab=balances');
             }
             $adjAmount = $targetAmount;
             $txType = 'adjustment_in';
@@ -818,7 +746,7 @@ class CashflowController extends Controller {
         } else { // withdraw_cash
             if ($targetAmount <= 0) {
                 $this->flash('error', 'Amount must be greater than 0.');
-                $this->redirect('cashflow/balances');
+                $this->redirect('cashflow/index?tab=balances');
             }
             $adjAmount = $targetAmount;
             $txType = 'adjustment_out';
@@ -856,7 +784,7 @@ class CashflowController extends Controller {
         ]);
 
         $this->flash('success', "Balance for '{$account['account_name']}' updated successfully!");
-        $this->redirect('cashflow/balances');
+        $this->redirect('cashflow/index?tab=balances');
     }
 
     /**
@@ -864,7 +792,7 @@ class CashflowController extends Controller {
      */
     public function deleteAccount() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('cashflow/balances');
+            $this->redirect('cashflow/index?tab=balances');
         }
         $this->verifyCsrfOrAbort();
 
@@ -874,22 +802,22 @@ class CashflowController extends Controller {
 
         if ($id <= 0) {
             $this->flash('error', 'Invalid account ID.');
-            $this->redirect('cashflow/balances');
+            $this->redirect('cashflow/index?tab=balances');
         }
 
         $acc = $db->fetch("SELECT * FROM financial_accounts WHERE id = ? AND store_id = ?", [$id, $storeId]);
         if (!$acc) {
             $this->flash('error', 'Account not found.');
-            $this->redirect('cashflow/balances');
+            $this->redirect('cashflow/index?tab=balances');
         }
         if ((int)$acc['is_default'] === 1) {
             $this->flash('error', 'Default Cash Drawer account cannot be deactivated.');
-            $this->redirect('cashflow/balances');
+            $this->redirect('cashflow/index?tab=balances');
         }
 
         $db->query("UPDATE financial_accounts SET status = 'inactive' WHERE id = ? AND store_id = ?", [$id, $storeId]);
         $this->flash('success', "Account '{$acc['account_name']}' deactivated.");
-        $this->redirect('cashflow/balances');
+        $this->redirect('cashflow/index?tab=balances');
     }
 
     /**
