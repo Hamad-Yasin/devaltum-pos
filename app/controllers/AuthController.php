@@ -9,8 +9,10 @@ class AuthController extends Controller {
 
         $error = '';
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (!Security::verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-                $error = "Invalid security token.";
+            $submittedToken = Security::csrfTokenFromRequest();
+            if (!Security::verifyCsrfToken($submittedToken)) {
+                Security::generateCsrfToken();
+                $error = "Invalid security token. Please try again.";
             } else {
                 $identifier = trim((string) ($_POST['identifier'] ?? ''));
                 $password = $_POST['password'] ?? '';

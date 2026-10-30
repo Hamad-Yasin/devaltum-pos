@@ -1965,10 +1965,6 @@ class App {
         unset($_SESSION['flash_message']);
         $_SESSION['flash_message'] = null;
         unset($_SESSION['flash_message']);
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            session_write_close();
-            session_start();
-        }
         return $flash;
     }
 

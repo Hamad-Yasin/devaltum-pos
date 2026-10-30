@@ -254,7 +254,7 @@
                     <div class="alert"><?php echo Security::escape($error); ?></div>
                 <?php endif; ?>
 
-                <form method="POST" action="<?= defined('BASE_URL') ? BASE_URL : '' ?>/auth/login">
+                <form method="POST" action="<?= defined('BASE_URL') ? BASE_URL : '' ?>/auth/login" data-no-ajax>
                     <?php echo Security::csrfField(); ?>
                     <div class="field">
                         <label>Email Or Username</label>
@@ -323,15 +323,11 @@
         msg.textContent = 'Touch your laptop fingerprint sensor, scan Face ID, or verify with Windows Hello...';
 
         const isSecure = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        if (!window.PublicKeyCredential || !isSecure) {
+        if (!window.PublicKeyCredential) {
             msg.style.background = '#fef2f2';
             msg.style.color = '#dc2626';
             msg.style.border = '1px solid #fecaca';
-            if (!isSecure) {
-                msg.innerHTML = '<span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle; margin-right:6px; color:#dc2626;">warning</span><strong>Security Requirement:</strong> Biometric login requires <strong>HTTPS</strong> or <code>http://localhost</code>. Please open via localhost or enable SSL in Laragon.';
-            } else {
-                msg.textContent = 'Biometric sign-in is not supported on this browser.';
-            }
+            msg.textContent = 'Biometric sign-in hardware is not supported on this browser or platform.';
             return;
         }
 
@@ -339,13 +335,16 @@
             const challenge = new Uint8Array(32);
             window.crypto.getRandomValues(challenge);
 
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             const savedCredId = localStorage.getItem('pos_biometric_cred_id');
             const publicKeyOpts = {
                 challenge: challenge,
-                rpId: window.location.hostname,
                 timeout: 60000,
                 userVerification: "preferred"
             };
+            if (!isLocal) {
+                publicKeyOpts.rpId = window.location.hostname;
+            }
 
             if (savedCredId) {
                 try {

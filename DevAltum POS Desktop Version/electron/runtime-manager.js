@@ -102,7 +102,7 @@ class RuntimeManager {
         this.isRunning = true;
         onProgress('DevAltum POS Ready!', 100);
 
-        return `http://127.0.0.1:${this.activeHttpPort}`;
+        return `http://localhost:${this.activeHttpPort}`;
     }
 
     // MariaDB Management

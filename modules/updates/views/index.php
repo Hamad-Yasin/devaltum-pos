@@ -1394,7 +1394,6 @@ if ($settingsCompanyNtn === '') {
     <button class="settings-tab-btn" type="button" data-settings-tab="expiry">Inventory & Expiry</button>
     <button class="settings-tab-btn" type="button" data-settings-tab="display"><span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle; margin-right:4px;">grid_view</span>Product Cards & Images</button>
     <button class="settings-tab-btn" type="button" data-settings-tab="receipt_designer"><span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle; margin-right:4px;">receipt_long</span>Receipt Designer</button>
-    <button class="settings-tab-btn" type="button" data-settings-tab="scanner"><span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle; margin-right:4px;">qr_code_scanner</span>Mobile Scanner</button>
     <button class="settings-tab-btn" type="button" data-settings-tab="security">Security & Biometrics</button>
     <button class="settings-tab-btn" type="button" data-settings-tab="migration"><span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle; margin-right:4px;">database</span>Database & Sync</button>
     <a href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/updates/software" class="settings-tab-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:#eff6ff; color:#2563eb; border-color:#bfdbfe;"><span class="material-symbols-rounded" style="font-size:18px;">cloud_sync</span>Software Updates (Live)</a>
@@ -2019,146 +2018,6 @@ if ($settingsCompanyNtn === '') {
     </div>
 </section>
 
-<section class="settings-panel" data-settings-panel="scanner">
-    <div class="settings-surface" style="background:#fff; border-radius:18px; border:1px solid #e2e8f0; padding:26px; box-shadow:0 2px 10px rgba(15,23,42,0.03);">
-        <?php 
-            $isScannerOn = (($settings['mobile_scanner_enabled'] ?? '0') === '1');
-            $scannerStoreId = (int) (class_exists('Tenant') ? Tenant::currentStoreId() : 1);
-            $currentScannerPin = class_exists('App') ? App::getStoreScannerPairCode($scannerStoreId) : '123456';
-        ?>
-        <!-- Header -->
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:22px; padding-bottom:18px; border-bottom:1px solid #f1f5f9;">
-            <div style="display:flex; align-items:center; gap:14px;">
-                <div style="width:48px; height:48px; border-radius:14px; background:linear-gradient(135deg, #0f6dff, #0284c7); color:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 6px 16px rgba(15,109,255,0.25);">
-                    <span class="material-symbols-rounded" style="font-size:26px;">qr_code_scanner</span>
-                </div>
-                <div>
-                    <h3 style="margin:0; font-size:18px; font-weight:800; color:#0f172a;">Wireless Mobile Barcode Scanner</h3>
-                    <p class="page-subtitle" style="margin:4px 0 0 0; font-size:13px; color:#64748b;">
-                        Turn smartphone cameras into wireless barcode scanners for POS checkout and Inventory via WiFi or Internet.
-                    </p>
-                </div>
-            </div>
-            <div>
-                <?php if ($isScannerOn): ?>
-                    <span style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:999px; font-size:12px; font-weight:800; background:#ecfdf5; color:#059669; border:1px solid #a7f3d0;">
-                        <span style="width:8px; height:8px; border-radius:50%; background:#10b981; display:inline-block;"></span> Active & Enabled
-                    </span>
-                <?php else: ?>
-                    <span style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:999px; font-size:12px; font-weight:800; background:#fef3c7; color:#d97706; border:1px solid #fde68a;">
-                        <span style="width:8px; height:8px; border-radius:50%; background:#f59e0b; display:inline-block;"></span> Disabled by Default
-                    </span>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <form action="<?= defined('BASE_URL') ? BASE_URL : '' ?>/updates/saveSettings" method="POST" data-no-ajax>
-            <?php echo Security::csrfField(); ?>
-            <input type="hidden" name="active_tab" value="scanner">
-            <input type="hidden" name="scanner_settings_submitted" value="1">
-            <input type="hidden" name="mobile_scanner_enabled" value="0">
-
-            <!-- Master Toggle Card -->
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 20px; background:<?= $isScannerOn ? 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)' : '#f8fafc' ?>; border:1.5px solid <?= $isScannerOn ? '#86efac' : '#e2e8f0' ?>; border-radius:16px; margin-bottom:20px; transition:all 0.2s ease;">
-                <div style="display:flex; align-items:flex-start; gap:14px;">
-                    <div style="width:40px; height:40px; border-radius:12px; background:<?= $isScannerOn ? '#dcfce7' : '#e2e8f0' ?>; color:<?= $isScannerOn ? '#16a34a' : '#64748b' ?>; display:grid; place-items:center; flex-shrink:0;">
-                        <span class="material-symbols-rounded" style="font-size:22px;">sensors</span>
-                    </div>
-                    <div>
-                        <strong style="font-size:15px; color:#0f172a; display:block;">Enable Mobile Scanner Integration</strong>
-                        <div class="page-subtitle" style="margin-top:4px; font-size:13px; color:#64748b; line-height:1.4;">
-                            When enabled, the Mobile Scanner button will appear in the top POS checkout bar, the sidebar menu item will be visible, and POS/Inventory will listen for live scans from paired phones.
-                        </div>
-                    </div>
-                </div>
-                <label class="premium-toggle" title="Toggle Wireless Mobile Scanner" style="margin-left:16px; flex-shrink:0;">
-                    <input type="checkbox" name="mobile_scanner_enabled" value="1" <?php echo $isScannerOn ? 'checked' : ''; ?>>
-                    <span></span>
-                </label>
-            </div>
-
-            <!-- Auto-Redirect to POS on Barcode Scan Card -->
-            <?php $isGlobalPosRedirectOn = (($settings['scanner_global_pos_redirect'] ?? '1') === '1'); ?>
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:18px 20px; background:<?= $isGlobalPosRedirectOn ? 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)' : '#f8fafc' ?>; border:1.5px solid <?= $isGlobalPosRedirectOn ? '#86efac' : '#e2e8f0' ?>; border-radius:16px; margin-bottom:20px; transition:all 0.2s ease;">
-                <div style="display:flex; align-items:flex-start; gap:14px;">
-                    <div style="width:40px; height:40px; border-radius:12px; background:<?= $isGlobalPosRedirectOn ? '#dcfce7' : '#e2e8f0' ?>; color:<?= $isGlobalPosRedirectOn ? '#16a34a' : '#64748b' ?>; display:grid; place-items:center; flex-shrink:0;">
-                        <span class="material-symbols-rounded" style="font-size:22px;">point_of_sale</span>
-                    </div>
-                    <div>
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <strong style="font-size:15px; color:#0f172a;">Auto-Redirect to POS on Barcode Scan</strong>
-                            <span style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; padding:2px 8px; border-radius:999px; background:#e0f2fe; color:#0369a1;">Universal Barcode Capture</span>
-                        </div>
-                        <div class="page-subtitle" style="margin-top:4px; font-size:13px; color:#64748b; line-height:1.4;">
-                            When enabled, scanning any barcode with a barcode scanner gun (USB/Wireless) or mobile scanner from <strong>ANY page</strong> (Dashboard, Sales, Products, Customers, Expenses, etc.) will automatically navigate directly to the POS Checkout screen and add the scanned product straight into the active cart!
-                        </div>
-                    </div>
-                </div>
-                <label class="premium-toggle" title="Toggle Auto-Redirect to POS on Barcode Scan" style="margin-left:16px; flex-shrink:0;">
-                    <input type="hidden" name="scanner_global_pos_redirect" value="0">
-                    <input type="checkbox" name="scanner_global_pos_redirect" value="1" <?php echo $isGlobalPosRedirectOn ? 'checked' : ''; ?>>
-                    <span></span>
-                </label>
-            </div>
-
-            <!-- Additional Settings Grid -->
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:22px;">
-                <!-- Beep Sound -->
-                <div style="padding:16px 18px; border:1px solid #e2e8f0; border-radius:14px; background:#fff; display:flex; justify-content:space-between; align-items:center; gap:14px;">
-                    <div>
-                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                            <span class="material-symbols-rounded" style="color:#0f6dff; font-size:20px;">volume_up</span>
-                            <strong style="font-size:13.5px; color:#0f172a;">Scan Audio Confirmation</strong>
-                        </div>
-                        <div style="font-size:12px; color:#64748b;">Play a beep sound on the POS screen whenever a barcode is successfully received from a mobile scanner.</div>
-                    </div>
-                    <label class="premium-toggle" style="flex-shrink:0;">
-                        <input type="hidden" name="scanner_beep_enabled" value="0">
-                        <input type="checkbox" name="scanner_beep_enabled" value="1" <?php echo (($settings['scanner_beep_enabled'] ?? '1') === '1') ? 'checked' : ''; ?>>
-                        <span></span>
-                    </label>
-                </div>
-
-                <!-- Sync Frequency -->
-                <div style="padding:16px 18px; border:1px solid #e2e8f0; border-radius:14px; background:#fff; display:flex; flex-direction:column; justify-content:space-between;">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                        <span class="material-symbols-rounded" style="color:#10b981; font-size:20px;">speed</span>
-                        <strong style="font-size:13.5px; color:#0f172a;">Real-Time Polling Speed</strong>
-                    </div>
-                    <div style="font-size:12px; color:#64748b; margin-bottom:10px;">Recommended: 600ms for instantaneous barcode addition during fast checkout.</div>
-                    <select class="form-input" name="scanner_poll_interval_ms" style="padding:7px 12px; font-size:13px; font-weight:700;">
-                        <option value="600" <?php echo (($settings['scanner_poll_interval_ms'] ?? '600') == '600') ? 'selected' : ''; ?>>600ms (Ultra-Fast Realtime - Recommended)</option>
-                        <option value="900" <?php echo (($settings['scanner_poll_interval_ms'] ?? '600') == '900') ? 'selected' : ''; ?>>900ms (Standard Sync)</option>
-                        <option value="1500" <?php echo (($settings['scanner_poll_interval_ms'] ?? '600') == '1500') ? 'selected' : ''; ?>>1500ms (Low Bandwidth Mode)</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Quick Access Hub Card -->
-            <div style="padding:18px 20px; border-radius:16px; background:linear-gradient(135deg, #0b132b 0%, #1e293b 100%); color:#fff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:24px;">
-                <div>
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                        <span class="material-symbols-rounded" style="color:#38bdf8; font-size:22px;">phone_android</span>
-                        <strong style="font-size:14px; color:#f8fafc;">Store Scanner PIN: <span style="font-family:monospace; font-size:18px; color:#38bdf8; letter-spacing:2px; font-weight:900;"><?= Security::escape($currentScannerPin) ?></span></strong>
-                    </div>
-                    <div style="font-size:12.5px; color:#cbd5e1;">Use this PIN in the mobile app to pair your phone camera directly to this store.</div>
-                </div>
-                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                    <a href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/updates/mobilescanner" class="btn" style="background:rgba(255,255,255,0.12); color:#fff; border:1px solid rgba(255,255,255,0.2); font-weight:700; font-size:13px; padding:8px 16px; border-radius:10px; display:inline-flex; align-items:center; gap:6px;">
-                        <span class="material-symbols-rounded" style="font-size:18px;">qr_code</span> Open Scanner Hub & QR Code
-                    </a>
-                </div>
-            </div>
-
-            <div style="display:flex; justify-content:flex-end;">
-                <button class="btn btn-primary" type="submit" style="display:inline-flex; align-items:center; gap:8px; padding:10px 24px; font-weight:800; border-radius:10px;">
-                    <span class="material-symbols-rounded">save</span> Save Scanner Settings
-                </button>
-            </div>
-        </form>
-    </div>
-</section>
-
 <section class="settings-panel" data-settings-panel="security">
     <div class="settings-surface" style="background:#fff; border-radius:18px; border:1px solid #e2e8f0; padding:26px; box-shadow:0 2px 10px rgba(15,23,42,0.03);">
         
@@ -2333,17 +2192,18 @@ function detectCurrentDevice() {
         iconEl.textContent = info.icon;
     }
 
-    const isSecureOrigin = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const isSecureOrigin = window.isSecureContext || isLocal;
 
     if (!isSecureOrigin) {
         if (badge) {
             badge.style.background = '#fffbeb';
             badge.style.color = '#d97706';
             badge.style.borderColor = '#fde68a';
-            badge.innerHTML = '<span class="material-symbols-rounded" style="font-size:16px;">lock_open</span> HTTPS / Localhost Required';
+            badge.innerHTML = '<span class="material-symbols-rounded" style="font-size:16px;">lock_open</span> Localhost or HTTPS Required';
         }
         if (note) {
-            note.innerHTML = '<span class="material-symbols-rounded" style="font-size:16px; vertical-align:middle; color:#d97706; margin-right:4px;">warning</span> Device: <strong>' + info.deviceTitle + '</strong>. Note: Browser biometric APIs require an HTTPS secure connection or localhost.';
+            note.innerHTML = '<span class="material-symbols-rounded" style="font-size:16px; vertical-align:middle; color:#d97706; margin-right:4px;">warning</span> Device: <strong>' + info.deviceTitle + '</strong>. Note: Biometric hardware integration requires localhost or HTTPS connection.';
         }
         return;
     }
@@ -2444,7 +2304,7 @@ async function registerBiometricDevice() {
             publicKey: {
                 challenge: challenge,
                 rp: {
-                    id: window.location.hostname,
+                    id: (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') ? 'localhost' : window.location.hostname,
                     name: "DevAltum POS SaaS Pro"
                 },
                 user: {
@@ -3350,36 +3210,59 @@ $designerSecMeta = [
     (() => {
         const settingsTabKey = 'settings_active_tab';
         const deviceTabKey = 'settings_device_active_tab';
-        const tabButtons = document.querySelectorAll('[data-settings-tab]');
-        const panels = document.querySelectorAll('[data-settings-panel]');
-        const activateTab = (key) => {
-            const exists = Array.from(tabButtons).some((btn) => btn.dataset.settingsTab === key);
-            const finalKey = exists ? key : (tabButtons[0]?.dataset.settingsTab || 'business');
-            tabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.settingsTab === finalKey));
-            panels.forEach((panel) => panel.classList.toggle('active', panel.dataset.settingsPanel === finalKey));
+
+        window.switchSettingsTab = function(key) {
+            const currentTabButtons = document.querySelectorAll('[data-settings-tab]');
+            const currentPanels = document.querySelectorAll('[data-settings-panel]');
+            if (!currentTabButtons.length) return;
+            const exists = Array.from(currentTabButtons).some((btn) => btn.dataset.settingsTab === key);
+            const finalKey = exists ? key : (currentTabButtons[0]?.dataset.settingsTab || 'business');
+            currentTabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.settingsTab === finalKey));
+            currentPanels.forEach((panel) => panel.classList.toggle('active', panel.dataset.settingsPanel === finalKey));
             sessionStorage.setItem(settingsTabKey, finalKey);
             sessionStorage.setItem('tab_updates/index', finalKey);
         };
-        tabButtons.forEach((btn) => btn.addEventListener('click', () => activateTab(btn.dataset.settingsTab)));
-        const urlParams = new URLSearchParams(window.location.search);
-        const requestedTab = urlParams.get('tab') || sessionStorage.getItem(settingsTabKey) || 'business';
-        activateTab(requestedTab);
 
-
-        const deviceSubtabs = document.querySelectorAll('[data-device-subtab]');
-        const devicePanels = document.querySelectorAll('[data-device-subpanel]');
-        const activateDeviceTab = (key) => {
-            const exists = Array.from(deviceSubtabs).some((btn) => btn.dataset.deviceSubtab === key);
-            const finalKey = exists ? key : (deviceSubtabs[0]?.dataset.deviceSubtab || 'live');
-            deviceSubtabs.forEach((item) => item.classList.toggle('active', item.dataset.deviceSubtab === finalKey));
-            devicePanels.forEach((panel) => panel.classList.toggle('active', panel.dataset.deviceSubpanel === finalKey));
+        window.switchDeviceTab = function(key) {
+            const currentDeviceSubtabs = document.querySelectorAll('[data-device-subtab]');
+            const currentDevicePanels = document.querySelectorAll('[data-device-subpanel]');
+            if (!currentDeviceSubtabs.length) return;
+            const exists = Array.from(currentDeviceSubtabs).some((btn) => btn.dataset.deviceSubtab === key);
+            const finalKey = exists ? key : (currentDeviceSubtabs[0]?.dataset.deviceSubtab || 'live');
+            currentDeviceSubtabs.forEach((item) => item.classList.toggle('active', item.dataset.deviceSubtab === finalKey));
+            currentDevicePanels.forEach((panel) => panel.classList.toggle('active', panel.dataset.deviceSubpanel === finalKey));
             sessionStorage.setItem(deviceTabKey, finalKey);
         };
-        deviceSubtabs.forEach((btn) => btn.addEventListener('click', () => activateDeviceTab(btn.dataset.deviceSubtab)));
-        activateDeviceTab(sessionStorage.getItem(deviceTabKey) || 'live');
-        document.querySelectorAll('[data-open-device-tab]').forEach((btn) => {
-            btn.addEventListener('click', () => activateDeviceTab(btn.dataset.openDeviceTab || 'live'));
-        });
+
+        // Delegated Global Event Handler - Never loses binding after form save or DOM replacement
+        if (!window.__settingsTabDelegationBound) {
+            window.__settingsTabDelegationBound = true;
+            document.addEventListener('click', function(e) {
+                const settingsBtn = e.target.closest('[data-settings-tab]');
+                if (settingsBtn) {
+                    e.preventDefault();
+                    window.switchSettingsTab(settingsBtn.dataset.settingsTab);
+                    return;
+                }
+                const deviceBtn = e.target.closest('[data-device-subtab]');
+                if (deviceBtn) {
+                    e.preventDefault();
+                    window.switchDeviceTab(deviceBtn.dataset.deviceSubtab);
+                    return;
+                }
+                const openDeviceBtn = e.target.closest('[data-open-device-tab]');
+                if (openDeviceBtn) {
+                    e.preventDefault();
+                    window.switchDeviceTab(openDeviceBtn.dataset.openDeviceTab || 'live');
+                    return;
+                }
+            });
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const requestedTab = urlParams.get('tab') || sessionStorage.getItem(settingsTabKey) || 'business';
+        window.switchSettingsTab(requestedTab);
+        window.switchDeviceTab(sessionStorage.getItem(deviceTabKey) || 'live');
 
         const deviceConsole = document.querySelector('[data-device-console]');
         const setDevice = (key, status, tone = 'ok') => {
