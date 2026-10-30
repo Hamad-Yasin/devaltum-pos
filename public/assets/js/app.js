@@ -1280,6 +1280,21 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('pagehide', () => window.stopAllActiveCameraStreams?.());
     window.addEventListener('beforeunload', () => window.stopAllActiveCameraStreams?.());
 
+    const triggerFlashToast = (flash) => {
+        if (!flash || !flash.message) return;
+        const flashKey = `${flash.type || 'info'}_${flash.message}`;
+        const lastShownKey = sessionStorage.getItem('last_flash_toast');
+        const lastShownTime = Number(sessionStorage.getItem('last_flash_time') || 0);
+        const now = Date.now();
+        // Prevent duplicate flash toast if the exact same message was shown in the last 10 seconds
+        if (lastShownKey === flashKey && (now - lastShownTime < 10000)) {
+            return;
+        }
+        sessionStorage.setItem('last_flash_toast', flashKey);
+        sessionStorage.setItem('last_flash_time', String(now));
+        window.appToast(flash.message, flash.type);
+    };
+
     const loadPage = async (url, pushState = true) => {
         url = scopeTabSessionUrl(url);
         window.stopAllActiveCameraStreams();
@@ -1347,9 +1362,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (data.ajax_redirect) {
-                if (data.flash && data.flash.message) {
-                    window.appToast(data.flash.message, data.flash.type);
-                }
+                triggerFlashToast(data.flash);
                 return loadPage(data.ajax_redirect, pushState);
             }
             
@@ -1413,9 +1426,7 @@ document.addEventListener('DOMContentLoaded', () => {
             executeScriptsInNode(contentArea);
             runExtraJs(data.extraJs, contentArea);
 
-            if (data.flash && data.flash.message) {
-                window.appToast(data.flash.message, data.flash.type);
-            }
+            triggerFlashToast(data.flash);
 
             document.querySelectorAll('.sidebar-nav .nav-item, .mobile-bottom-nav a').forEach((item) => {
                 item.classList.remove('active');
@@ -1542,9 +1553,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (data.ajax_redirect) {
-                    if (data.flash && data.flash.message) {
-                        window.appToast(data.flash.message, data.flash.type);
-                    }
+                    triggerFlashToast(data.flash);
                     return loadPage(data.ajax_redirect, true);
                 }
                 
@@ -1607,9 +1616,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 executeScriptsInNode(contentArea);
                 runExtraJs(data.extraJs, contentArea);
                 
-                if (data.flash && data.flash.message) {
-                    window.appToast(data.flash.message, data.flash.type);
-                }
+                triggerFlashToast(data.flash);
 
                 if (res.redirected) {
                     history.pushState({ url: res.url }, '', res.url);

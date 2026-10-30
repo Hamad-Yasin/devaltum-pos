@@ -39,6 +39,9 @@ class Controller {
                 'ajax_redirect' => $fullUrl,
                 'flash' => App::pullFlash()
             ]);
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_write_close();
+            }
             exit;
         }
 
