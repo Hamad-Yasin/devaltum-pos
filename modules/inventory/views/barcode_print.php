@@ -1,8 +1,8 @@
 <?php ob_start(); ?>
 <?php
 $product = $product ?? null;
-$activeStore = Tenant::activeStore();
-$defaultStoreName = $activeStore['name'] ?? App::setting('company_name', 'DevAltum Store');
+$activeStore = Tenant::currentStore();
+$defaultStoreName = $activeStore['name'] ?? $activeStore['store_name'] ?? App::setting('company_name', 'DevAltum Store');
 $currency = App::setting('currency_symbol', 'Rs');
 $productName = $product['name'] ?? 'Sample Product';
 $productBarcode = App::normalizeBarcode($product['barcode'] ?? '');

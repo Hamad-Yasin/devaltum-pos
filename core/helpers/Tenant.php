@@ -48,6 +48,13 @@ class Tenant {
         return self::$storeContext;
     }
 
+    /**
+     * Alias for currentStore to ensure backwards compatibility across modules
+     */
+    public static function activeStore() {
+        return self::currentStore();
+    }
+
     public static function clearStoreCache() {
         self::$storeContext = null;
         self::$storeContextId = null;

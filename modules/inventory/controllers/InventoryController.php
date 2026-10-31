@@ -342,8 +342,8 @@ class InventoryController extends Controller {
             $product = $db->fetch("SELECT * FROM products WHERE id = ? AND $where LIMIT 1", array_merge([$productId], $whereParams));
         }
 
-        $activeStore = Tenant::activeStore();
-        $defaultStoreName = $activeStore['name'] ?? App::setting('company_name', 'DevAltum Store');
+        $activeStore = Tenant::currentStore();
+        $defaultStoreName = $activeStore['name'] ?? $activeStore['store_name'] ?? App::setting('company_name', 'DevAltum Store');
 
         $storeName = trim((string) ($_POST['store_name'] ?? $_GET['store_name'] ?? $defaultStoreName));
         $productName = trim((string) ($_POST['product_name'] ?? $_GET['product_name'] ?? ($product['name'] ?? 'Product')));
