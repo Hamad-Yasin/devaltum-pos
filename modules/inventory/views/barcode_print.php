@@ -206,29 +206,67 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
         background: #ffffff;
     }
 
-    /* Quick Quantity Pills */
+    /* Quick Quantity Pills - Premium Smooth Horizontal Scrollable Bar */
+    .qty-pills-wrap {
+        position: relative;
+        margin-top: 8px;
+        margin-bottom: 16px;
+    }
     .qty-pills {
         display: flex;
-        gap: 6px;
-        margin-bottom: 14px;
+        align-items: center;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 4px 2px 8px;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 transparent;
+    }
+    .qty-pills::-webkit-scrollbar {
+        height: 5px;
+    }
+    .qty-pills::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 999px;
+    }
+    .qty-pills::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 999px;
+    }
+    .qty-pills::-webkit-scrollbar-thumb:hover {
+        background: #0284c7;
     }
     .qty-pill {
-        flex: 1;
-        padding: 5px 0;
+        flex: 0 0 auto;
+        padding: 6px 14px;
         font-size: 11.5px;
         font-weight: 800;
-        color: #475569;
-        background: #f1f5f9;
-        border: 1px solid #e2e8f0;
-        border-radius: 7px;
+        color: #334155;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 999px;
         cursor: pointer;
         text-align: center;
-        transition: all 0.12s ease;
+        transition: all 0.18s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        user-select: none;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
     }
     .qty-pill:hover {
-        background: #e0f2fe;
+        background: #f0f9ff;
         color: #0284c7;
-        border-color: #bae6fd;
+        border-color: #0284c7;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(2, 132, 199, 0.15);
+    }
+    .qty-pill.active {
+        background: #0284c7;
+        color: #ffffff;
+        border-color: #0284c7;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.28);
     }
 
     /* Action Buttons */
@@ -344,7 +382,7 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
         font-weight: 700;
         color: #1e293b;
         line-height: 1.2;
-        margin-bottom: 4px;
+        margin-bottom: 7px;
         width: 100%;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -354,7 +392,7 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
         max-width: 100%;
         height: 38px;
         display: block;
-        margin: 0 auto 2px;
+        margin: 2px auto 2px;
     }
     .sticker-barcode-text {
         font-family: 'Consolas', 'Courier New', monospace;
@@ -438,34 +476,22 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
 
                 <!-- 1. Content Customization -->
                 <div class="cfg-group-title">
-                    <span class="material-symbols-rounded">tune</span>
-                    1. Sticker Content & Store Header
+                    <span class="material-symbols-rounded">storefront</span>
+                    1. Store Header on Stickers
                 </div>
 
                 <div class="cfg-field">
                     <label class="cfg-label">Store Name (Printed on Top of Each Sticker) *</label>
-                    <input type="text" name="store_name" id="in-store-name" class="cfg-input" value="<?= Security::escape($defaultStoreName) ?>" oninput="updateLivePreview()" required>
+                    <input type="text" name="store_name" id="in-store-name" class="cfg-input" value="<?= Security::escape($defaultStoreName) ?>" placeholder="Enter Store Name" oninput="updateLivePreview()" required>
                 </div>
 
-                <div class="cfg-field">
-                    <label class="cfg-label">Product Name *</label>
-                    <input type="text" name="product_name" id="in-prod-name" class="cfg-input" value="<?= Security::escape($productName) ?>" oninput="updateLivePreview()" required>
-                </div>
-
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <div class="cfg-field">
-                        <label class="cfg-label">Price (<?= $currency ?>) *</label>
-                        <input type="number" step="0.01" min="0" name="price" id="in-price" class="cfg-input" value="<?= $productPrice ?>" oninput="updateLivePreview()" required>
-                    </div>
-
-                    <div class="cfg-field">
-                        <label class="cfg-label">Barcode Number (Code128) *</label>
-                        <input type="text" name="barcode" id="in-barcode" class="cfg-input" value="<?= Security::escape($displayBarcode) ?>" oninput="updateLivePreview()" required>
-                    </div>
-                </div>
+                <!-- Hidden Product Data (Auto-fetched from product, no need to manually edit) -->
+                <input type="hidden" name="product_name" id="in-prod-name" value="<?= Security::escape($productName) ?>">
+                <input type="hidden" name="price" id="in-price" value="<?= $productPrice ?>">
+                <input type="hidden" name="barcode" id="in-barcode" value="<?= Security::escape($displayBarcode) ?>">
 
                 <!-- 2. Quantity & Grid Setup -->
-                <div class="cfg-group-title">
+                <div class="cfg-group-title" style="margin-top:18px;">
                     <span class="material-symbols-rounded">format_list_numbered</span>
                     2. Quantity & Sticker Grid
                 </div>
@@ -477,12 +503,20 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
                         <input type="number" name="quantity" id="in-quantity" class="qty-input" value="30" min="1" max="1000" oninput="updateLivePreview()">
                         <button type="button" class="qty-step-btn" onclick="adjustQty(1)">+</button>
                     </div>
-                    <div class="qty-pills">
-                        <button type="button" class="qty-pill" onclick="setQty(3)">3 (1 Row)</button>
-                        <button type="button" class="qty-pill" onclick="setQty(15)">15 (5 Rows)</button>
-                        <button type="button" class="qty-pill" onclick="setQty(30)">30 (10 Rows)</button>
-                        <button type="button" class="qty-pill" onclick="setQty(60)">60 (20 Rows)</button>
-                        <button type="button" class="qty-pill" onclick="setQty(100)">100 Pcs</button>
+
+                    <div class="qty-pills-wrap">
+                        <div class="qty-pills">
+                            <button type="button" class="qty-pill" data-qty="3" onclick="setQty(3)">3 (1 Row)</button>
+                            <button type="button" class="qty-pill" data-qty="6" onclick="setQty(6)">6 (2 Rows)</button>
+                            <button type="button" class="qty-pill" data-qty="15" onclick="setQty(15)">15 (5 Rows)</button>
+                            <button type="button" class="qty-pill active" data-qty="30" onclick="setQty(30)">30 (10 Rows)</button>
+                            <button type="button" class="qty-pill" data-qty="45" onclick="setQty(45)">45 (15 Rows)</button>
+                            <button type="button" class="qty-pill" data-qty="60" onclick="setQty(60)">60 (20 Rows)</button>
+                            <button type="button" class="qty-pill" data-qty="90" onclick="setQty(90)">90 (30 Rows)</button>
+                            <button type="button" class="qty-pill" data-qty="100" onclick="setQty(100)">100 Pcs</button>
+                            <button type="button" class="qty-pill" data-qty="150" onclick="setQty(150)">150 Pcs</button>
+                            <button type="button" class="qty-pill" data-qty="200" onclick="setQty(200)">200 Pcs</button>
+                        </div>
                     </div>
                 </div>
 
@@ -538,6 +572,16 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
 (() => {
     const currency = '<?= $currency ?>';
 
+    window.syncPillsActive = (qty) => {
+        document.querySelectorAll('.qty-pill').forEach(pill => {
+            if (parseInt(pill.getAttribute('data-qty'), 10) === qty) {
+                pill.classList.add('active');
+            } else {
+                pill.classList.remove('active');
+            }
+        });
+    };
+
     // Quantity Adjustment Helpers
     window.adjustQty = (delta) => {
         const input = document.getElementById('in-quantity');
@@ -566,6 +610,9 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
         const barcode = document.getElementById('in-barcode')?.value?.trim() || '123456789012';
         const qty = Math.max(1, Math.min(1000, parseInt(document.getElementById('in-quantity')?.value || '30', 10)));
         const columns = parseInt(document.getElementById('in-columns')?.value || '3', 10);
+
+        // Sync active pill state
+        if (window.syncPillsActive) window.syncPillsActive(qty);
 
         // Update Mini Header Box
         const topName = document.getElementById('disp-top-name');

@@ -194,16 +194,16 @@ class BarcodeDocxHelper {
 
             // 2. Product Name
             '<w:p>' .
-            '<w:pPr><w:jc w:val="center"/><w:spacing w:before="20" w:after="20" w:line="200" w:lineRule="auto"/></w:pPr>' .
+            '<w:pPr><w:jc w:val="center"/><w:spacing w:before="20" w:after="70" w:line="200" w:lineRule="auto"/></w:pPr>' .
             '<w:r>' .
             '<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial"/><w:b/><w:sz w:val="14"/><w:color w:val="1E293B"/></w:rPr>' .
             "<w:t>{$cleanProduct}</w:t>" .
             '</w:r>' .
             '</w:p>' .
 
-            // 3. Barcode Image
+            // 3. Barcode Image (Added vertical clearance above barcode to prevent touching text)
             '<w:p>' .
-            '<w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0" w:line="200" w:lineRule="auto"/></w:pPr>' .
+            '<w:pPr><w:jc w:val="center"/><w:spacing w:before="50" w:after="20" w:line="200" w:lineRule="auto"/></w:pPr>' .
             '<w:r>' .
             '<w:drawing>' .
             '<wp:inline distT="0" distB="0" distL="0" distR="0">' .
