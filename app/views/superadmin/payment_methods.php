@@ -16,8 +16,8 @@ $logoUrls = [
 ?>
 
 <!-- Quill Rich Text Editor Assets -->
-<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+<link href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/assets/vendor/quill.snow.css" rel="stylesheet" />
+<script src="<?= defined('BASE_URL') ? BASE_URL : '' ?>/assets/vendor/quill.js"></script>
 
 <style>
     .rich-editor-wrapper {

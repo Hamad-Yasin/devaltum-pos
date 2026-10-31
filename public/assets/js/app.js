@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         async sync() {
             const queue = getOfflineQueue();
-            if (!queue.length || !navigator.onLine) return [];
+            if (!queue.length) return [];
             const remaining = [];
             const synced = [];
 
@@ -1702,11 +1702,7 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch((error) => {
                 console.error('AJAX Submit Error:', error);
-                if (!navigator.onLine) {
-                    window.appToast("You are currently offline. This action requires an internet connection.", "error");
-                } else {
-                    window.appToast("AJAX Submit Error: " + error.message, "error");
-                }
+                window.appToast("Error: " + (error.message || 'Operation failed'), "error");
             });
     };
 
@@ -2335,12 +2331,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    window.addEventListener('online', async () => {
-        const syncedItems = await window.appOfflineQueue.sync();
-        if (syncedItems && syncedItems.length > 0) {
-            window.appToast(`${syncedItems.length} offline sale(s) have been successfully synced to the database!`, 'success');
-        }
-    });
+    // Auto-flush any residual queued sales directly to local database
+    (async () => {
+        try {
+            const syncedItems = await window.appOfflineQueue?.sync?.();
+            if (syncedItems && syncedItems.length > 0) {
+                window.appToast(`${syncedItems.length} queued sale(s) have been successfully saved to the database!`, 'success');
+            }
+        } catch (e) {}
+    })();
 
     setMobileMenuIcon(false);
     syncNotificationBell();

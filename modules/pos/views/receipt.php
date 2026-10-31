@@ -90,9 +90,7 @@ $receiptOrder = App::receiptSectionOrder();
 <head>
     <meta charset="UTF-8">
     <title>Receipt - <?php echo Security::escape($invoice['custom_id']); ?></title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="<?php echo $baseUrl; ?>/assets/fonts/fonts.css">
     <style>
         :root { --print-width-mm: <?php echo (int) $printableWidthMm; ?>; }
         body { font-family: var(--receipt-font), 'Trebuchet MS', Arial, sans-serif; background:#f3f4f6; margin:0; padding:24px; color:#111827; }
@@ -1006,8 +1004,8 @@ $receiptOrder = App::receiptSectionOrder();
             <?php endif; ?>
         </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="<?php echo $baseUrl; ?>/assets/vendor/html2canvas.min.js"></script>
+    <script src="<?php echo $baseUrl; ?>/assets/vendor/jspdf.umd.min.js"></script>
     <script>
         const query = new URLSearchParams(window.location.search);
         const forcedPrinter = query.get('printer');

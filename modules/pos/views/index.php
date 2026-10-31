@@ -2218,9 +2218,7 @@ $categoriesList = $categories ?? [];
             </div>
         </div>
 
-        <div class="offline-bar" id="offline-bar" style="margin:8px 12px 0; padding:8px 12px; border-radius:8px; background:#fff7ed; color:#9a3412; border:1px solid #fed7aa; display:none; font-size:11.5px; font-weight:750;">
-            Offline mode active. Sales will be saved on this device and auto-synced when internet returns.
-        </div>
+
 
         <!-- TAB 1: CART ITEMS VIEW -->
         <div id="pos-cart-view" style="display:flex; flex-direction:column; flex:1;">
@@ -2431,10 +2429,7 @@ $categoriesList = $categories ?? [];
     customerNameInput?.addEventListener('input', updateCustomerSummaryBadge);
     customerPhoneInput?.addEventListener('input', updateCustomerSummaryBadge);
 
-    const updateOfflineBar = () => {
-        const hasQueue = window.appOfflineQueue?.all()?.length > 0;
-        if (offlineBar) offlineBar.style.display = (!navigator.onLine || hasQueue) ? 'block' : 'none';
-    };
+    const updateOfflineBar = () => {};
 
     const escapeHtml = (value) => String(value ?? '')
         .replace(/&/g, '&amp;')
@@ -4460,7 +4455,6 @@ $categoriesList = $categories ?? [];
         };
 
         try {
-            if (!navigator.onLine) throw new Error("offline");
             let response = await sendCheckoutRequest(payload);
             let data = await response.json();
             if (response.status === 419 || /security token mismatch/i.test(String(data.error || ''))) {
@@ -4491,26 +4485,8 @@ $categoriesList = $categories ?? [];
             clearCheckoutState();
             fetchHeldSalesCount();
         } catch (error) {
-            if (error.message !== 'offline' && error.message !== 'Failed to fetch') {
-                window.appToast(error.message, 'error');
-                return;
-            }
-            window.appOfflineQueue.add({
-                url: scopeUrl(`${baseUrl}/pos/checkout`),
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (status === 'paid') printOfflineReceipt(payload);
-
-            deductLocalStock(payload);
-            clearCheckoutState();
-            updateOfflineBar();
-            window.appToast('Sale added to offline queue and receipt generated.', 'success');
+            console.error('Checkout error:', error);
+            window.appToast(error.message || 'Checkout failed. Please try again.', 'error');
         }
     };
 
@@ -4536,11 +4512,12 @@ $categoriesList = $categories ?? [];
         persistCheckoutState();
     };
 
-    window.addEventListener('online', async () => {
-        await window.appOfflineQueue?.sync();
-        updateOfflineBar();
-    });
-    window.addEventListener('offline', updateOfflineBar);
+    // Auto-sync any legacy residual queue on load
+    (async () => {
+        try {
+            await window.appOfflineQueue?.sync?.();
+        } catch (e) {}
+    })();
 
     restoreCheckoutState();
 

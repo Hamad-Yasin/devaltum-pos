@@ -64,13 +64,7 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
     <link rel="shortcut icon" href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/favicon.ico">
     
     <title><?php echo $pageTitle ?? $settings['company_name']; ?></title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800;900&display=swap" media="print" onload="this.media='all'">
-    <noscript>
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,500,0,0&display=swap" rel="stylesheet">
-    </noscript>
+    <link rel="stylesheet" href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/assets/fonts/fonts.css?v=<?= @filemtime(ROOT_PATH . '/public/assets/fonts/fonts.css') ?: time() ?>">
     <link rel="stylesheet" href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/assets/css/style.css?v=<?= @filemtime(ROOT_PATH . '/public/assets/css/style.css') ?: time() ?>">
     <script>
         window.BASE_URL = '<?= defined('BASE_URL') ? BASE_URL : '' ?>';
@@ -985,18 +979,18 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
     </script>
     <?php endif; ?>
     <script>
+        // Ensure standalone desktop offline reliability by unregistering any legacy PWA service workers/caches
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                const swUrl = '<?= defined("BASE_URL") ? BASE_URL : "" ?>/sw.js';
-
-                navigator.serviceWorker.register(swUrl)
-                    .then(registration => {
-                        console.log('PWA ServiceWorker registration successful with scope: ', registration.scope);
-                    })
-                    .catch(err => {
-                        console.error('PWA ServiceWorker registration failed: ', err);
-                    });
-            });
+            navigator.serviceWorker.getRegistrations().then(registrations => {
+                for (let registration of registrations) {
+                    registration.unregister();
+                }
+            }).catch(() => {});
+            if ('caches' in window) {
+                caches.keys().then(keys => {
+                    keys.forEach(key => caches.delete(key));
+                }).catch(() => {});
+            }
         }
     </script>
     <?php if (!Auth::isSuperAdmin()): ?>
