@@ -100,17 +100,57 @@ function createMainWindow(url) {
     // Remove default menu bar for clean app look
     mainWindow.setMenuBarVisibility(false);
 
-    // Prevent opening blank internal browser windows on downloads or links
+    // Intelligent window open handler: allows receipts and print windows, opens external links in OS browser, blocks unwanted blank windows
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url && (url.startsWith('http:') || url.startsWith('https:'))) {
-            try {
+        if (!url || url === 'about:blank') {
+            return {
+                action: 'allow',
+                overrideBrowserWindowOptions: {
+                    autoHideMenuBar: true,
+                    webPreferences: {
+                        nodeIntegration: false,
+                        contextIsolation: true
+                    }
+                }
+            };
+        }
+
+        try {
+            if (url.startsWith('http:') || url.startsWith('https:')) {
                 const parsed = new URL(url);
+                // External URLs (WhatsApp, documentation, external sites): open in OS default browser
                 if (parsed.hostname !== '127.0.0.1' && parsed.hostname !== 'localhost') {
                     require('electron').shell.openExternal(url);
+                    return { action: 'deny' };
                 }
-            } catch (e) {}
+
+                // Internal URLs: allow receipts, invoices, print previews, reports
+                if (url.includes('/receipt') || url.includes('/print') || url.includes('/invoice') || url.includes('print=1') || url.includes('direct_print')) {
+                    return {
+                        action: 'allow',
+                        overrideBrowserWindowOptions: {
+                            width: 480,
+                            height: 740,
+                            autoHideMenuBar: true,
+                            title: 'Receipt - DevAltum POS',
+                            webPreferences: {
+                                nodeIntegration: false,
+                                contextIsolation: true
+                            }
+                        }
+                    };
+                }
+            }
+        } catch (e) {
+            console.warn('[WindowOpenHandler] Parse error:', e);
         }
+
         return { action: 'deny' };
+    });
+
+    // Ensure any newly spawned child windows (e.g. receipt popups) have menu bars hidden
+    mainWindow.webContents.on('did-create-window', (childWindow) => {
+        childWindow.setMenuBarVisibility(false);
     });
 
     // Auto-wipe stale HTTP/partition caches on startup so new releases load fresh and fast
