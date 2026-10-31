@@ -100,6 +100,19 @@ function createMainWindow(url) {
     // Remove default menu bar for clean app look
     mainWindow.setMenuBarVisibility(false);
 
+    // Prevent opening blank internal browser windows on downloads or links
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        if (url && (url.startsWith('http:') || url.startsWith('https:'))) {
+            try {
+                const parsed = new URL(url);
+                if (parsed.hostname !== '127.0.0.1' && parsed.hostname !== 'localhost') {
+                    require('electron').shell.openExternal(url);
+                }
+            } catch (e) {}
+        }
+        return { action: 'deny' };
+    });
+
     // Auto-wipe stale HTTP/partition caches on startup so new releases load fresh and fast
     mainWindow.webContents.session.clearCache().catch(() => {});
 

@@ -404,20 +404,16 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
                 <span class="material-symbols-rounded" style="color:#0284c7; font-size:28px;">barcode_scanner</span>
                 Barcode Label & MS Word Studio
             </h1>
-            <p>Generate, preview, and export pixel-perfect barcode stickers into <strong>Microsoft Word (.docx)</strong> or print via thermal printer.</p>
+            <p>Generate, preview, and export pixel-perfect barcode stickers into <strong>Microsoft Word (.docx)</strong>.</p>
         </div>
         <div class="studio-actions">
             <a href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/inventory/index?tab=list" class="btn btn-secondary" style="height:40px; border-radius:10px; display:inline-flex; align-items:center; gap:6px;">
                 <span class="material-symbols-rounded">arrow_back</span>
                 Back to Inventory
             </a>
-            <button type="button" class="btn btn-primary" onclick="submitWordExportForm()" style="height:40px; border-radius:10px; display:inline-flex; align-items:center; gap:6px; background:#0284c7; border-color:#0284c7; font-weight:800;">
+            <button type="button" class="btn btn-primary" onclick="submitWordExportForm()" style="height:40px; border-radius:10px; display:inline-flex; align-items:center; gap:6px; background:#0284c7; border-color:#0284c7; font-weight:800; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);">
                 <span class="material-symbols-rounded">download</span>
                 Download MS Word (.docx)
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="window.print()" style="height:40px; border-radius:10px; display:inline-flex; align-items:center; gap:6px;">
-                <span class="material-symbols-rounded">print</span>
-                Quick Thermal Print
             </button>
         </div>
     </div>
@@ -435,8 +431,8 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
                 </div>
             </div>
 
-            <!-- Hidden Export Form -->
-            <form action="<?= defined('BASE_URL') ? BASE_URL : '' ?>/inventory/exportBarcodeDocx" method="POST" id="word-export-form" target="_blank">
+            <!-- Export Form (No target=_blank so it downloads directly without opening blank window) -->
+            <form action="<?= defined('BASE_URL') ? BASE_URL : '' ?>/inventory/exportBarcodeDocx" method="POST" id="word-export-form">
                 <?= Security::csrfField() ?>
                 <input type="hidden" name="product_id" value="<?= (int)($product['id'] ?? 0) ?>">
 
@@ -649,8 +645,6 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
     }, 50);
 })();
 </script>
-
-<?php $extraJs = ob_get_clean(); ?>
 
 <?php
 $content = ob_get_clean();
