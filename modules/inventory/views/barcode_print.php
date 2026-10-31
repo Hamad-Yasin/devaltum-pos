@@ -269,102 +269,78 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
         box-shadow: 0 4px 12px rgba(2, 132, 199, 0.28);
     }
 
-    /* Barcode Symbology Selector */
+    /* Compact Barcode Symbology Segmented Switcher */
     .barcode-type-selector {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 10px;
-        margin-top: 8px;
+        gap: 6px;
+        background: #f1f5f9;
+        padding: 4px;
+        border-radius: 10px;
+        margin-top: 6px;
         margin-bottom: 14px;
+        border: 1px solid #e2e8f0;
+        box-sizing: border-box;
     }
     .barcode-type-card {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 9px 12px;
-        background: #f8fafc;
-        border: 1.5px solid #e2e8f0;
-        border-radius: 10px;
+        justify-content: center;
+        gap: 6px;
+        padding: 7px 8px;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 7px;
         cursor: pointer;
-        position: relative;
-        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        transition: all 0.16s ease;
         user-select: none;
+        color: #475569;
+        box-sizing: border-box;
+        text-align: center;
+        outline: none;
     }
     .barcode-type-card:hover {
-        border-color: #93c5fd;
-        background: #ffffff;
-        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);
-        transform: translateY(-1px);
+        background: rgba(255, 255, 255, 0.85);
+        color: #0f172a;
     }
     .barcode-type-card.active {
-        border-color: #0284c7;
-        background: #f0f9ff;
-        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.16);
-    }
-    .type-icon-box {
-        width: 34px;
-        height: 34px;
-        border-radius: 8px;
         background: #ffffff;
-        border: 1px solid #e2e8f0;
-        display: flex;
+        color: #0284c7;
+        border-color: #cbd5e1;
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+    }
+    .barcode-type-card .type-icon {
+        font-size: 17px;
+        color: inherit;
+        display: inline-flex;
         align-items: center;
-        justify-content: center;
-        color: #64748b;
         flex-shrink: 0;
-        transition: all 0.2s ease;
     }
-    .type-icon-box .material-symbols-rounded {
-        font-size: 20px;
-    }
-    .barcode-type-card.active .type-icon-box {
-        background: #0284c7;
-        border-color: #0284c7;
-        color: #ffffff;
-    }
-    .type-info {
-        flex: 1;
-        min-width: 0;
-    }
-    .type-name {
-        font-size: 12.5px;
+    .barcode-type-card .type-name {
+        font-size: 11.5px;
         font-weight: 800;
-        color: #1e293b;
-        line-height: 1.2;
-    }
-    .barcode-type-card.active .type-name {
-        color: #0369a1;
-    }
-    .type-desc {
-        font-size: 9.5px;
-        font-weight: 600;
-        color: #64748b;
-        margin-top: 2px;
+        letter-spacing: -0.1px;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
-    .type-badge {
-        font-size: 9px;
+    .barcode-type-card .type-tag {
+        font-size: 8.5px;
         font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.4px;
-        padding: 2px 6px;
-        border-radius: 6px;
+        padding: 1px 5px;
+        border-radius: 4px;
         background: #e2e8f0;
         color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        line-height: 1.3;
+        flex-shrink: 0;
     }
-    .barcode-type-card.active .type-badge {
-        background: #bae6fd;
-        color: #0369a1;
+    .barcode-type-card.active .type-tag {
+        background: #e0f2fe;
+        color: #0284c7;
     }
-    .type-badge.retail {
+    .barcode-type-card.active .type-tag.retail {
         background: #fef3c7;
         color: #92400e;
-    }
-    .barcode-type-card.active .type-badge.retail {
-        background: #0284c7;
-        color: #ffffff;
     }
 
     /* Action Buttons */
@@ -588,36 +564,26 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
                 <input type="hidden" name="price" id="in-price" value="<?= $productPrice ?>">
                 <input type="hidden" name="barcode" id="in-barcode" value="<?= Security::escape($displayBarcode) ?>">
 
-                <!-- 2. Barcode Symbology Standard -->
-                <div class="cfg-group-title" style="margin-top:18px;">
+                <!-- 2. Barcode Format -->
+                <div class="cfg-group-title" style="margin-top:16px;">
                     <span class="material-symbols-rounded">qr_code_2</span>
-                    2. Barcode Symbology Format
+                    2. Barcode Format
                 </div>
 
                 <input type="hidden" name="barcode_format" id="in-barcode-format" value="code128">
 
                 <div class="barcode-type-selector">
-                    <div class="barcode-type-card active" id="type-card-code128" onclick="setBarcodeFormat('code128')">
-                        <div class="type-icon-box">
-                            <span class="material-symbols-rounded">barcode</span>
-                        </div>
-                        <div class="type-info">
-                            <div class="type-name">Code 128</div>
-                            <div class="type-desc">Universal • Alpha-Numeric</div>
-                        </div>
-                        <span class="type-badge">Standard</span>
-                    </div>
+                    <button type="button" class="barcode-type-card active" id="type-card-code128" onclick="setBarcodeFormat('code128')">
+                        <span class="material-symbols-rounded type-icon">barcode</span>
+                        <span class="type-name">Code 128</span>
+                        <span class="type-tag">Standard</span>
+                    </button>
 
-                    <div class="barcode-type-card" id="type-card-ean13" onclick="setBarcodeFormat('ean13')">
-                        <div class="type-icon-box">
-                            <span class="material-symbols-rounded">barcode_scanner</span>
-                        </div>
-                        <div class="type-info">
-                            <div class="type-name">EAN-13</div>
-                            <div class="type-desc">Retail GS1 • 13 Digits</div>
-                        </div>
-                        <span class="type-badge retail">Retail</span>
-                    </div>
+                    <button type="button" class="barcode-type-card" id="type-card-ean13" onclick="setBarcodeFormat('ean13')">
+                        <span class="material-symbols-rounded type-icon">barcode_scanner</span>
+                        <span class="type-name">EAN-13</span>
+                        <span class="type-tag retail">Retail</span>
+                    </button>
                 </div>
 
                 <!-- 3. Quantity & Grid Setup -->
