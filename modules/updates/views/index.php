@@ -3114,8 +3114,7 @@ $designerSecMeta = [
                                 <?php elseif ($secKey === 'summary'): ?>
                                     <!-- SECTION: SUMMARY COUNTERS -->
                                     <div class="preview-sec <?= empty($receiptVis['show_item_counters']) ? 'is-hidden' : '' ?>" data-sec="summary" style="display:flex; justify-content:space-between; align-items:center; border-left:1px solid #0f172a; border-right:1px solid #0f172a; border-bottom:1px solid #0f172a; padding:3px 6px; margin-top:-4px; margin-bottom:5px; font-size:9.5px; font-weight:600; color:#0f172a; background:#fafafa;">
-                                        <span>Total Items : 3.00</span>
-                                        <span>No. Of Qty. : 6.00</span>
+                                        <span>Total Items : 3</span>
                                     </div>
 
                                 <?php elseif ($secKey === 'totals'): ?>

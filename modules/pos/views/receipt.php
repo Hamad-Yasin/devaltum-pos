@@ -805,7 +805,6 @@ $receiptOrder = App::receiptSectionOrder();
                     <?php if (!empty($receiptVis['show_item_counters'])): ?>
                         <div class="retail-summary-row">
                             <span>Total Items : <?php echo (int) count($items); ?></span>
-                            <span>No. Of Qty. : <?php echo number_format((float) $totalQtySum, 2); ?></span>
                         </div>
                     <?php endif; ?>
 

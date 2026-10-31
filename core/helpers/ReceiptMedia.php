@@ -258,13 +258,12 @@ class ReceiptMedia {
                 $y += $rowH;
             }
 
-            // Summary Row (Total Items & Total Qty)
+            // Summary Row (Total Items)
             $sumH = 22;
             $sumBg = imagecolorallocate($im, 248, 250, 252);
             imagefilledrectangle($im, $tblLeft, $y, $tblRight, $y + $sumH, $sumBg);
             imagerectangle($im, $tblLeft, $y, $tblRight, $y + $sumH, $c['title']);
             self::drawText($im, 'Total Items : ' . count($data['items']), $tblLeft + 6, $y + 15, 9.5, $c['title'], $bold);
-            self::drawTextRight($im, 'No. Of Qty. : ' . App::formatQuantity($totalQtySum), $tblRight - 6, $y + 15, 9.5, $c['title'], $bold);
             $y += $sumH + 18;
 
             // Totals
