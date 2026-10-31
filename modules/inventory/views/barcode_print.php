@@ -269,6 +269,104 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
         box-shadow: 0 4px 12px rgba(2, 132, 199, 0.28);
     }
 
+    /* Barcode Symbology Selector */
+    .barcode-type-selector {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 8px;
+        margin-bottom: 14px;
+    }
+    .barcode-type-card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 12px;
+        background: #f8fafc;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        user-select: none;
+    }
+    .barcode-type-card:hover {
+        border-color: #93c5fd;
+        background: #ffffff;
+        box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);
+        transform: translateY(-1px);
+    }
+    .barcode-type-card.active {
+        border-color: #0284c7;
+        background: #f0f9ff;
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.16);
+    }
+    .type-icon-box {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+    }
+    .type-icon-box .material-symbols-rounded {
+        font-size: 20px;
+    }
+    .barcode-type-card.active .type-icon-box {
+        background: #0284c7;
+        border-color: #0284c7;
+        color: #ffffff;
+    }
+    .type-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .type-name {
+        font-size: 12.5px;
+        font-weight: 800;
+        color: #1e293b;
+        line-height: 1.2;
+    }
+    .barcode-type-card.active .type-name {
+        color: #0369a1;
+    }
+    .type-desc {
+        font-size: 9.5px;
+        font-weight: 600;
+        color: #64748b;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .type-badge {
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        padding: 2px 6px;
+        border-radius: 6px;
+        background: #e2e8f0;
+        color: #475569;
+    }
+    .barcode-type-card.active .type-badge {
+        background: #bae6fd;
+        color: #0369a1;
+    }
+    .type-badge.retail {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    .barcode-type-card.active .type-badge.retail {
+        background: #0284c7;
+        color: #ffffff;
+    }
+
     /* Action Buttons */
     .btn-export-docx {
         width: 100%;
@@ -490,10 +588,42 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
                 <input type="hidden" name="price" id="in-price" value="<?= $productPrice ?>">
                 <input type="hidden" name="barcode" id="in-barcode" value="<?= Security::escape($displayBarcode) ?>">
 
-                <!-- 2. Quantity & Grid Setup -->
+                <!-- 2. Barcode Symbology Standard -->
+                <div class="cfg-group-title" style="margin-top:18px;">
+                    <span class="material-symbols-rounded">qr_code_2</span>
+                    2. Barcode Symbology Format
+                </div>
+
+                <input type="hidden" name="barcode_format" id="in-barcode-format" value="code128">
+
+                <div class="barcode-type-selector">
+                    <div class="barcode-type-card active" id="type-card-code128" onclick="setBarcodeFormat('code128')">
+                        <div class="type-icon-box">
+                            <span class="material-symbols-rounded">barcode</span>
+                        </div>
+                        <div class="type-info">
+                            <div class="type-name">Code 128</div>
+                            <div class="type-desc">Universal • Alpha-Numeric</div>
+                        </div>
+                        <span class="type-badge">Standard</span>
+                    </div>
+
+                    <div class="barcode-type-card" id="type-card-ean13" onclick="setBarcodeFormat('ean13')">
+                        <div class="type-icon-box">
+                            <span class="material-symbols-rounded">barcode_scanner</span>
+                        </div>
+                        <div class="type-info">
+                            <div class="type-name">EAN-13</div>
+                            <div class="type-desc">Retail GS1 • 13 Digits</div>
+                        </div>
+                        <span class="type-badge retail">Retail</span>
+                    </div>
+                </div>
+
+                <!-- 3. Quantity & Grid Setup -->
                 <div class="cfg-group-title" style="margin-top:18px;">
                     <span class="material-symbols-rounded">format_list_numbered</span>
-                    2. Quantity & Sticker Grid
+                    3. Quantity & Sticker Grid
                 </div>
 
                 <div class="cfg-field">
@@ -582,6 +712,33 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
         });
     };
 
+    // Barcode Symbology Switcher
+    window.setBarcodeFormat = (fmt) => {
+        const input = document.getElementById('in-barcode-format');
+        if (input) input.value = fmt;
+
+        document.getElementById('type-card-code128')?.classList.toggle('active', fmt === 'code128');
+        document.getElementById('type-card-ean13')?.classList.toggle('active', fmt === 'ean13');
+
+        window.updateLivePreview();
+    };
+
+    function formatEan13Js(code) {
+        let digits = String(code || '').replace(/\D/g, '');
+        if (digits.length < 12) {
+            digits = digits.padStart(12, '0');
+        } else if (digits.length > 12) {
+            digits = digits.substring(0, 12);
+        }
+        let sum = 0;
+        for (let i = 0; i < 12; i++) {
+            const d = parseInt(digits[i], 10);
+            sum += (i % 2 === 0) ? d : (d * 3);
+        }
+        const check = (10 - (sum % 10)) % 10;
+        return digits + check;
+    }
+
     // Quantity Adjustment Helpers
     window.adjustQty = (delta) => {
         const input = document.getElementById('in-quantity');
@@ -608,8 +765,15 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
         const prodName = document.getElementById('in-prod-name')?.value?.trim() || 'Product Name';
         const rawPrice = parseFloat(document.getElementById('in-price')?.value || '0') || 0;
         const barcode = document.getElementById('in-barcode')?.value?.trim() || '123456789012';
+        const barcodeFormat = document.getElementById('in-barcode-format')?.value || 'code128';
         const qty = Math.max(1, Math.min(1000, parseInt(document.getElementById('in-quantity')?.value || '30', 10)));
         const columns = parseInt(document.getElementById('in-columns')?.value || '3', 10);
+
+        // Compute display code (EAN-13 calculates check digit if selected)
+        let displayCode = barcode;
+        if (barcodeFormat === 'ean13') {
+            displayCode = formatEan13Js(barcode);
+        }
 
         // Sync active pill state
         if (window.syncPillsActive) window.syncPillsActive(qty);
@@ -618,7 +782,7 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
         const topName = document.getElementById('disp-top-name');
         if (topName) topName.textContent = prodName;
         const topBarcode = document.getElementById('disp-top-barcode');
-        if (topBarcode) topBarcode.textContent = barcode;
+        if (topBarcode) topBarcode.textContent = displayCode;
         const topPrice = document.getElementById('disp-top-price');
         if (topPrice) topPrice.textContent = rawPrice.toFixed(2);
 
@@ -645,7 +809,7 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
                     <div class="sticker-store-name">${escapeHtml(storeName)}</div>
                     <div class="sticker-product-name">${escapeHtml(prodName)}</div>
                     <svg class="sticker-barcode-svg" id="barcode-svg-${i}"></svg>
-                    <div class="sticker-barcode-text">${escapeHtml(barcode)}</div>
+                    <div class="sticker-barcode-text">${escapeHtml(displayCode)}</div>
                     <div class="sticker-price">${escapeHtml(formattedPrice)}</div>
                 </div>
             `;
@@ -653,23 +817,45 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
 
         grid.innerHTML = html;
 
-        // Render Barcodes via JsBarcode
+        // Render Barcodes via JsBarcode (Code128 or EAN13)
         if (window.JsBarcode) {
             for (let i = 0; i < qty; i++) {
                 const el = document.getElementById(`barcode-svg-${i}`);
                 if (el) {
                     try {
-                        JsBarcode(el, barcode, {
-                            format: 'CODE128',
-                            lineColor: '#000000',
-                            width: 1.4,
-                            height: 32,
-                            displayValue: false,
-                            margin: 0
-                        });
+                        if (barcodeFormat === 'ean13') {
+                            JsBarcode(el, displayCode, {
+                                format: 'EAN13',
+                                lineColor: '#000000',
+                                width: 1.4,
+                                height: 32,
+                                displayValue: false,
+                                margin: 0
+                            });
+                        } else {
+                            JsBarcode(el, barcode, {
+                                format: 'CODE128',
+                                lineColor: '#000000',
+                                width: 1.4,
+                                height: 32,
+                                displayValue: false,
+                                margin: 0
+                            });
+                        }
                     } catch (e) {
-                        // Fallback if barcode contains invalid Code128 chars
-                        console.warn('JsBarcode render error:', e);
+                        // Fallback to Code128 if EAN13 fails
+                        try {
+                            JsBarcode(el, barcode, {
+                                format: 'CODE128',
+                                lineColor: '#000000',
+                                width: 1.4,
+                                height: 32,
+                                displayValue: false,
+                                margin: 0
+                            });
+                        } catch (err) {
+                            console.warn('JsBarcode render error:', err);
+                        }
                     }
                 }
             }

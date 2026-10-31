@@ -7,18 +7,27 @@
 class BarcodeDocxHelper {
 
     /**
-     * Generate Code128 PNG image data using PHP GD
+     * Generate Barcode PNG image data using PHP GD (Supports Code128 and EAN-13)
      */
-    public static function generateBarcodePng(string $code, int $width = 280, int $height = 80): string {
+    public static function generateBarcodePng(string $code, int $width = 280, int $height = 80, string $format = 'code128', ?string &$outDisplayCode = null): string {
         $code = trim($code);
         if (empty($code)) {
             $code = '00000000';
         }
 
-        // Get Code128 binary pattern
-        $bars = self::encodeCode128($code);
+        if (strtolower($format) === 'ean13') {
+            $bars = self::encodeEan13($code, $eanDigits);
+            $outDisplayCode = $eanDigits;
+            if (!$bars) {
+                $bars = self::encodeCode128($code);
+                $outDisplayCode = $code;
+            }
+        } else {
+            $bars = self::encodeCode128($code);
+            $outDisplayCode = $code;
+        }
+
         $totalBars = strlen($bars);
-        
         $imgWidth = max($width, $totalBars * 2);
         $imgHeight = $height;
 
@@ -55,14 +64,16 @@ class BarcodeDocxHelper {
         $storeName = trim($params['store_name'] ?? 'DevAltum Store');
         $productName = trim($params['product_name'] ?? 'Product Name');
         $barcode = trim($params['barcode'] ?? '123456789012');
+        $format = strtolower(trim($params['barcode_format'] ?? 'code128'));
         $price = (float) ($params['price'] ?? 0);
         $currency = trim($params['currency'] ?? 'Rs');
         $quantity = max(1, min(1000, (int) ($params['quantity'] ?? 30)));
         $columns = max(1, min(6, (int) ($params['columns'] ?? 3)));
         $formattedPrice = $currency . ' ' . number_format($price, 2);
 
-        // 1. Generate crisp Barcode PNG
-        $barcodePng = self::generateBarcodePng($barcode, 260, 65);
+        // 1. Generate crisp Barcode PNG (handles Code128 & EAN-13)
+        $displayCode = $barcode;
+        $barcodePng = self::generateBarcodePng($barcode, 260, 65, $format, $displayCode);
 
         // 2. Build WordprocessingML table rows
         $rowsXml = '';
@@ -76,7 +87,7 @@ class BarcodeDocxHelper {
             $rowCells = '';
             for ($c = 0; $c < $columns; $c++) {
                 if ($stickerCount < $quantity) {
-                    $rowCells .= self::buildCellXml($storeName, $productName, $barcode, $formattedPrice, $cellWidthDxa);
+                    $rowCells .= self::buildCellXml($storeName, $productName, $displayCode, $formattedPrice, $cellWidthDxa);
                     $stickerCount++;
                 } else {
                     // Empty spacer cell to preserve table structure
@@ -289,6 +300,80 @@ class BarcodeDocxHelper {
         $checkVal = $checkSum % 103;
         $binary .= self::patternToBinary($patterns[$checkVal]);
         $binary .= self::patternToBinary($patterns[106]);
+
+        return $binary;
+    }
+
+    /**
+     * Format a string into a valid 13-digit EAN-13 code with check digit
+     */
+    public static function formatEan13Code(string $code): string {
+        $digits = preg_replace('/\D/', '', $code);
+        if (strlen($digits) < 12) {
+            $digits = str_pad($digits, 12, '0', STR_PAD_LEFT);
+        } else if (strlen($digits) > 12) {
+            $digits = substr($digits, 0, 12);
+        }
+        $sum = 0;
+        for ($i = 0; $i < 12; $i++) {
+            $d = (int)$digits[$i];
+            $sum += ($i % 2 === 0) ? $d : ($d * 3);
+        }
+        $check = (10 - ($sum % 10)) % 10;
+        return $digits . $check;
+    }
+
+    /**
+     * Encode standard EAN-13 binary pattern (95 modules total)
+     */
+    private static function encodeEan13(string $code, ?string &$outDigits = null): ?string {
+        $outDigits = self::formatEan13Code($code);
+        $first = (int)$outDigits[0];
+
+        $parityMap = [
+            0 => ['A','A','A','A','A','A'],
+            1 => ['A','A','B','A','B','B'],
+            2 => ['A','A','B','B','A','B'],
+            3 => ['A','A','B','B','B','A'],
+            4 => ['A','B','A','A','B','B'],
+            5 => ['A','B','B','A','A','B'],
+            6 => ['A','B','B','B','A','A'],
+            7 => ['A','B','A','B','A','B'],
+            8 => ['A','B','A','B','B','A'],
+            9 => ['A','B','B','A','B','A']
+        ];
+
+        $patternsA = [
+            0 => '0001101', 1 => '0011001', 2 => '0010011', 3 => '0111101', 4 => '0100011',
+            5 => '0110001', 6 => '0101111', 7 => '0111011', 8 => '0110111', 9 => '0001011'
+        ];
+        $patternsB = [
+            0 => '0100111', 1 => '0110011', 2 => '0011011', 3 => '0100001', 4 => '0011101',
+            5 => '0111001', 6 => '0000101', 7 => '0010001', 8 => '0001001', 9 => '0010111'
+        ];
+        $patternsC = [
+            0 => '1110010', 1 => '1100110', 2 => '1101100', 3 => '1000010', 4 => '1011100',
+            5 => '1001110', 6 => '1010000', 7 => '1000100', 8 => '1001000', 9 => '1110100'
+        ];
+
+        $binary = '101'; // Left guard
+
+        // 6 left digits with parity based on first digit
+        for ($i = 1; $i <= 6; $i++) {
+            $digit = (int)$outDigits[$i];
+            $parity = $parityMap[$first][$i - 1];
+            $binary .= ($parity === 'A') ? $patternsA[$digit] : $patternsB[$digit];
+        }
+
+        $binary .= '01010'; // Center guard
+
+        // 6 right digits (all pattern C)
+        for ($i = 7; $i <= 12; $i++) {
+            $digit = (int)$outDigits[$i];
+            $binary .= $patternsC[$digit];
+        }
+
+        $binary .= '101'; // Right guard
 
         return $binary;
     }

@@ -348,6 +348,7 @@ class InventoryController extends Controller {
         $storeName = trim((string) ($_POST['store_name'] ?? $_GET['store_name'] ?? $defaultStoreName));
         $productName = trim((string) ($_POST['product_name'] ?? $_GET['product_name'] ?? ($product['name'] ?? 'Product')));
         $barcode = trim((string) ($_POST['barcode'] ?? $_GET['barcode'] ?? ($product['barcode'] ?? '123456789012')));
+        $barcodeFormat = strtolower(trim((string) ($_POST['barcode_format'] ?? $_GET['barcode_format'] ?? 'code128')));
         $price = (float) ($_POST['price'] ?? $_GET['price'] ?? ($product['price'] ?? 0));
         $quantity = max(1, min(1000, (int) ($_POST['quantity'] ?? $_GET['quantity'] ?? 30)));
         $columns = max(1, min(6, (int) ($_POST['columns'] ?? $_GET['columns'] ?? 3)));
@@ -358,6 +359,7 @@ class InventoryController extends Controller {
             'store_name' => $storeName,
             'product_name' => $productName,
             'barcode' => $barcode,
+            'barcode_format' => $barcodeFormat,
             'price' => $price,
             'currency' => $currency,
             'quantity' => $quantity,
