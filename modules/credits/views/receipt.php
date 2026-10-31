@@ -1,4 +1,16 @@
-$rawReceiptLogo = App::setting('receipt_logo', '');
+$rawReceiptLogo = trim((string) App::setting('receipt_logo', ''));
+if ($rawReceiptLogo === '' || !App::mediaExists($rawReceiptLogo)) {
+    $fallbackWebLogo = trim((string) App::setting('website_logo', ''));
+    if ($fallbackWebLogo !== '' && App::mediaExists($fallbackWebLogo)) {
+        $rawReceiptLogo = $fallbackWebLogo;
+    }
+}
+if ($rawReceiptLogo === '' || !App::mediaExists($rawReceiptLogo)) {
+    $fallbackCustomLogo = trim((string) App::setting('devaltum_custom_logo', ''));
+    if ($fallbackCustomLogo !== '' && App::mediaExists($fallbackCustomLogo)) {
+        $rawReceiptLogo = $fallbackCustomLogo;
+    }
+}
 $receiptLogo = ($rawReceiptLogo !== '' && App::mediaExists($rawReceiptLogo)) ? App::mediaUrl($rawReceiptLogo) : '';
 $companyName = App::setting('company_name', 'DevAltum POS');
 $companyAddress = App::setting('company_address', '');

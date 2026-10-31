@@ -11,7 +11,19 @@ if (!class_exists('BarcodeHelper')) {
         require_once $barcodeHelper;
     }
 }
-$rawReceiptLogo = App::setting('receipt_logo', '');
+$rawReceiptLogo = trim((string) App::setting('receipt_logo', ''));
+if ($rawReceiptLogo === '' || !App::mediaExists($rawReceiptLogo)) {
+    $fallbackWebLogo = trim((string) App::setting('website_logo', ''));
+    if ($fallbackWebLogo !== '' && App::mediaExists($fallbackWebLogo)) {
+        $rawReceiptLogo = $fallbackWebLogo;
+    }
+}
+if ($rawReceiptLogo === '' || !App::mediaExists($rawReceiptLogo)) {
+    $fallbackCustomLogo = trim((string) App::setting('devaltum_custom_logo', ''));
+    if ($fallbackCustomLogo !== '' && App::mediaExists($fallbackCustomLogo)) {
+        $rawReceiptLogo = $fallbackCustomLogo;
+    }
+}
 $receiptLogo = ($rawReceiptLogo !== '' && App::mediaExists($rawReceiptLogo)) ? App::mediaUrl($rawReceiptLogo) : '';
 $companyName = App::setting('company_name', 'DevAltum POS');
 $companyAddress = App::setting('company_address', '');
@@ -405,10 +417,10 @@ $receiptOrder = App::receiptSectionOrder();
             box-sizing: border-box !important;
             letter-spacing: normal;
         }
-        .retail-header-box { text-align: center; margin-bottom: 6px; }
-        .retail-no-logo-placeholder { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 86px; height: 36px; border: 1px solid #d1d5db; background: #f8fafc; color: #94a3b8; font-size: 8.5px; font-weight: 600 !important; line-height: 1.2; text-align: center; margin: 0 auto 6px; border-radius: 3px; letter-spacing: 0.3px; }
-        .retail-logo-img { max-width: 120px; max-height: 44px; object-fit: contain; display: block; margin: 0 auto 6px; }
-        .retail-store-title { font-size: 17px; font-weight: 800 !important; color: #0f172a; margin: 0 0 2px; letter-spacing: 0.2px; line-height: 1.2; text-align: center; }
+        .retail-header-box { text-align: center; margin-bottom: 5px; }
+        .retail-no-logo-placeholder { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 84px; height: 30px; border: 1px dashed #475569; background: #f8fafc; color: #0f172a; font-size: 8px; font-weight: 700 !important; line-height: 1.15; text-align: center; margin: 0 auto 4px; border-radius: 3px; letter-spacing: 0.3px; }
+        .retail-logo-img { max-width: 120px; max-height: 44px; object-fit: contain; display: block; margin: 0 auto 4px; }
+        .retail-store-title { font-size: 16.5px; font-weight: 800 !important; color: #0f172a; margin: 0 0 2px; letter-spacing: 0.2px; line-height: 1.2; text-align: center; }
         .retail-store-address { font-size: 10.5px; font-weight: 400 !important; color: #334155; margin: 0 0 2px; line-height: 1.3; text-align: center; }
         .retail-store-contact { font-size: 11.5px; font-weight: 600 !important; color: #0f172a; margin: 0 0 6px; text-align: center; }
         .retail-ribbon-bar { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #0f172a; border-bottom: 1px solid #0f172a; padding: 4px 2px; margin: 5px 0 7px; font-size: 10.5px; color: #0f172a; }
@@ -490,7 +502,7 @@ $receiptOrder = App::receiptSectionOrder();
 
         @page {
             size: auto;
-            margin: 0;
+            margin: 0mm !important;
         }
         @media print {
             * {
@@ -498,12 +510,18 @@ $receiptOrder = App::receiptSectionOrder();
                 print-color-adjust: exact !important;
                 box-sizing: border-box !important;
             }
+            html, body {
+                background: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                color: #000000 !important;
+            }
             body.receipt-template-retail_standard,
             body.receipt-template-classic,
             body.receipt-template-compact,
             body.receipt-template-premium,
             body.receipt-template-thermal_mono {
-                background: #fff !important;
+                background: #ffffff !important;
                 padding: 0 !important;
                 margin: 0 !important;
                 color: #000000 !important;
@@ -517,7 +535,7 @@ $receiptOrder = App::receiptSectionOrder();
                 max-width: calc(var(--print-width-mm) * 1mm) !important;
                 border: none !important;
                 box-shadow: none !important;
-                padding: 1.5mm 1mm 2mm 1mm !important;
+                padding: 0.5mm 1mm 2mm 1mm !important;
                 border-radius: 0 !important;
                 height: auto !important;
                 min-height: 0 !important;
@@ -528,10 +546,43 @@ $receiptOrder = App::receiptSectionOrder();
                 break-inside: avoid !important;
                 color: #000000 !important;
             }
-            /* Universal high contrast text for thermal heads (prevents halftone dot dithering) */
+            .retail-header-box {
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+                margin-bottom: 3px !important;
+            }
+            .retail-header-box > *:first-child {
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+            }
+            .retail-no-logo-placeholder {
+                display: inline-flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 82px !important;
+                height: 25px !important;
+                border: 1px dashed #000000 !important;
+                background: transparent !important;
+                color: #000000 !important;
+                font-size: 7.5px !important;
+                font-weight: 700 !important;
+                line-height: 1.15 !important;
+                text-align: center !important;
+                margin: 0 auto 3px !important;
+                border-radius: 2px !important;
+            }
+            .retail-logo-img {
+                max-width: 110px !important;
+                max-height: 38px !important;
+                display: block !important;
+                margin: 0 auto 3px !important;
+                filter: grayscale(100%) contrast(120%) !important;
+            }
+            /* Universal clean contrast text for thermal heads - prevent ink bleeding */
             .retail-store-title {
                 color: #000000 !important;
-                font-weight: 900 !important;
+                font-weight: 800 !important;
             }
             .retail-store-address,
             .retail-store-contact,
@@ -542,14 +593,15 @@ $receiptOrder = App::receiptSectionOrder();
             .retail-thanks-line,
             .retail-rupees-words {
                 color: #000000 !important;
-                font-weight: 700 !important;
+                font-weight: 600 !important;
             }
             .retail-inv-badge {
                 border: 1px solid #000000 !important;
                 color: #000000 !important;
-                font-weight: 800 !important;
+                font-weight: 700 !important;
+                background: transparent !important;
             }
-            /* High contrast table grid for thermal printers */
+            /* Clean table grid - no grey fills that cause dithering dots */
             .retail-table-grid {
                 width: 100% !important;
                 border: 1px solid #000000 !important;
@@ -558,37 +610,38 @@ $receiptOrder = App::receiptSectionOrder();
             }
             .retail-table-grid th {
                 border: 1px solid #000000 !important;
-                background: #f0f0f0 !important;
+                background: transparent !important;
                 color: #000000 !important;
-                font-weight: 800 !important;
+                font-weight: 700 !important;
             }
             .retail-table-grid td {
                 border: 1px solid #000000 !important;
+                background: transparent !important;
                 color: #000000 !important;
                 font-weight: 600 !important;
             }
             .retail-table-grid td.col-price,
             .retail-table-grid td.col-qty,
             .retail-table-grid td.col-amount {
-                font-weight: 700 !important;
+                font-weight: 600 !important;
                 color: #000000 !important;
             }
             .retail-sub-unit {
                 color: #000000 !important;
-                font-size: 8.5px !important;
-                font-weight: 700 !important;
+                font-size: 8px !important;
+                font-weight: 600 !important;
             }
-            /* Summary row below items */
+            /* Summary row below items - clean transparent */
             .retail-summary-row {
                 border: 1px solid #000000 !important;
                 border-top: none !important;
-                background: #ffffff !important;
+                background: transparent !important;
                 color: #000000 !important;
-                font-weight: 800 !important;
+                font-weight: 700 !important;
             }
             .retail-summary-row span {
                 color: #000000 !important;
-                font-weight: 800 !important;
+                font-weight: 700 !important;
             }
             /* Totals lines */
             .retail-totals-container .retail-total-line {
@@ -597,31 +650,23 @@ $receiptOrder = App::receiptSectionOrder();
             .retail-totals-container .retail-total-line span,
             .retail-totals-container .retail-total-line strong {
                 color: #000000 !important;
-                font-weight: 800 !important;
+                font-weight: 700 !important;
             }
-            /* Net payable box - bold solid border and text */
+            /* Net payable box - clean 1.5px border, white background, no ink bleeding */
             .retail-net-payable-box {
-                border: 2px solid #000000 !important;
-                background: #ffffff !important;
+                border: 1.5px solid #000000 !important;
+                background: transparent !important;
                 color: #000000 !important;
-                font-weight: 900 !important;
+                font-weight: 800 !important;
             }
             .retail-net-payable-box span {
                 color: #000000 !important;
-                font-weight: 900 !important;
-            }
-            /* Ribbon bar styling across thermal themes */
-            body.receipt-template-classic .retail-ribbon-bar,
-            body.receipt-template-premium .retail-ribbon-bar {
-                background: #000000 !important;
-                color: #ffffff !important;
-                border: none !important;
-            }
-            body.receipt-template-classic .retail-ribbon-bar span,
-            body.receipt-template-premium .retail-ribbon-bar span {
-                color: #ffffff !important;
                 font-weight: 800 !important;
             }
+            /* Ribbon bar styling across thermal themes - 1px clean borders, no thick black blocks that bleed */
+            .retail-ribbon-bar,
+            body.receipt-template-classic .retail-ribbon-bar,
+            body.receipt-template-premium .retail-ribbon-bar,
             body.receipt-template-retail_standard .retail-ribbon-bar,
             body.receipt-template-compact .retail-ribbon-bar,
             body.receipt-template-thermal_mono .retail-ribbon-bar {
@@ -630,11 +675,14 @@ $receiptOrder = App::receiptSectionOrder();
                 border-bottom: 1px solid #000000 !important;
                 color: #000000 !important;
             }
+            .retail-ribbon-bar span,
+            body.receipt-template-classic .retail-ribbon-bar span,
+            body.receipt-template-premium .retail-ribbon-bar span,
             body.receipt-template-retail_standard .retail-ribbon-bar span,
             body.receipt-template-compact .retail-ribbon-bar span,
             body.receipt-template-thermal_mono .retail-ribbon-bar span {
                 color: #000000 !important;
-                font-weight: 800 !important;
+                font-weight: 700 !important;
             }
             /* Barcode vector sharpness */
             .retail-barcode-holder svg {
@@ -643,7 +691,7 @@ $receiptOrder = App::receiptSectionOrder();
                 display: block !important;
             }
             .retail-barcode-holder svg text {
-                font-weight: 800 !important;
+                font-weight: 700 !important;
                 fill: #000000 !important;
             }
             /* DevAltum branding high-contrast */
@@ -653,6 +701,7 @@ $receiptOrder = App::receiptSectionOrder();
             .actions, .no-print {
                 display: none !important;
             }
+        }
         }
     </style>
 </head>
@@ -1057,7 +1106,7 @@ $receiptOrder = App::receiptSectionOrder();
                 const contentWidthMm = is58mm ? 48 : 72;
                 const pageHeightMm = Math.max(35, exactHeightMm + 2);
 
-                styleTag.textContent = `@page { size: ${paperWidthMm}mm ${pageHeightMm}mm; margin: 0; } @media print { *{box-sizing:border-box!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;} html,body{width:100%!important;margin:0!important;padding:0!important;background:#fff!important;display:block!important;} .sheet{width:${contentWidthMm}mm!important;max-width:${contentWidthMm}mm!important;min-width:0!important;margin:0 auto!important;padding:1.5mm 1mm 2mm 1mm!important;height:auto!important;min-height:0!important;box-shadow:none!important;border:none!important;border-radius:0!important;page-break-after:avoid!important;break-after:avoid!important;page-break-inside:avoid!important;break-inside:avoid!important;overflow:visible!important;} .actions,.no-print{display:none!important;} }`;
+                styleTag.textContent = `@page { size: ${paperWidthMm}mm ${pageHeightMm}mm; margin: 0; } @media print { *{box-sizing:border-box!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;} html,body{width:100%!important;margin:0!important;padding:0!important;background:#fff!important;display:block!important;} .sheet{width:${contentWidthMm}mm!important;max-width:${contentWidthMm}mm!important;min-width:0!important;margin:0 auto!important;padding:0.5mm 1mm 2mm 1mm!important;height:auto!important;min-height:0!important;box-shadow:none!important;border:none!important;border-radius:0!important;page-break-after:avoid!important;break-after:avoid!important;page-break-inside:avoid!important;break-inside:avoid!important;overflow:visible!important;} .retail-header-box{margin-top:0!important;padding-top:0!important;margin-bottom:3px!important;} .retail-header-box>*:first-child{margin-top:0!important;} .actions,.no-print{display:none!important;} }`;
             }
         };
 

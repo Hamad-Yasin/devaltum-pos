@@ -305,3 +305,4 @@ class BarcodeDocxHelper {
         return $bin;
     }
 }
+
