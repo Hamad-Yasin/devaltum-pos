@@ -29,6 +29,34 @@
     margin: 0;
     padding: 0;
     font-family: 'Manrope', sans-serif;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+}
+
+/* ========================================================
+   GLOBAL ULTRA-SLIM PRO CUSTOM SCROLLBARS
+   ======================================================== */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.38);
+    border-radius: 999px;
+    transition: background 0.18s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #0284c7;
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
 }
 
 html, body {
@@ -173,22 +201,20 @@ textarea {
 
 @media (min-width: 1101px) {
     .sidebar-nav::-webkit-scrollbar {
-        width: 10px;
+        width: 6px;
     }
 
     .sidebar-nav::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 999px;
+        background: transparent;
     }
 
     .sidebar-nav::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, rgba(125, 211, 252, 0.58), rgba(30, 64, 175, 0.78));
+        background: rgba(148, 163, 184, 0.4);
         border-radius: 999px;
-        border: 2px solid rgba(15, 23, 42, 0.25);
     }
 
     .sidebar-nav::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(180deg, rgba(186, 230, 253, 0.76), rgba(37, 99, 235, 0.96));
+        background: #38bdf8;
     }
 }
 
@@ -1246,25 +1272,24 @@ textarea {
 
 .table-wrap::-webkit-scrollbar,
 .table-responsive::-webkit-scrollbar {
-    height: 7px;
-    width: 7px;
+    height: 6px;
+    width: 6px;
 }
 
 .table-wrap::-webkit-scrollbar-track,
 .table-responsive::-webkit-scrollbar-track {
-    background: rgba(148, 163, 184, 0.08);
-    border-radius: 8px;
+    background: transparent;
 }
 
 .table-wrap::-webkit-scrollbar-thumb,
 .table-responsive::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.45);
-    border-radius: 8px;
+    background: rgba(148, 163, 184, 0.38);
+    border-radius: 999px;
 }
 
 .table-wrap::-webkit-scrollbar-thumb:hover,
 .table-responsive::-webkit-scrollbar-thumb:hover {
-    background: var(--primary, #0f6dff);
+    background: #0284c7;
 }
 
 table {

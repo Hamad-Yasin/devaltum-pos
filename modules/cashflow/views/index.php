@@ -422,61 +422,59 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => ($a['status'] ?? 
     .cf-form-rows {
         display: flex;
         flex-direction: column;
-        gap: 14px;
+        gap: 10px;
     }
-    .cf-form-row-1 {
+    .cf-form-grid-4 {
         display: grid;
-        grid-template-columns: 1.3fr 1.2fr 1fr 1fr;
-        gap: 12px;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
     }
-    .cf-form-row-2 {
+    .cf-form-grid-action {
         display: grid;
-        grid-template-columns: 1.2fr 1fr 1.2fr 1fr 1.2fr auto;
-        gap: 12px;
+        grid-template-columns: minmax(0, 3fr) minmax(0, 1fr);
+        gap: 10px;
         align-items: flex-end;
     }
-    @media (max-width: 1100px) {
-        .cf-form-row-1 { grid-template-columns: 1fr 1fr; }
-        .cf-form-row-2 { grid-template-columns: 1fr 1fr; }
+    @media (max-width: 1024px) {
+        .cf-form-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .cf-form-grid-action { grid-template-columns: 1fr; }
     }
-    @media (max-width: 650px) {
-        .cf-form-row-1 { grid-template-columns: 1fr; }
-        .cf-form-row-2 { grid-template-columns: 1fr; }
+    @media (max-width: 600px) {
+        .cf-form-grid-4 { grid-template-columns: 1fr; }
     }
 
     .cf-field-group {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 4px;
+        min-width: 0;
     }
     .cf-field-label {
-        font-size: 11.5px;
+        font-size: 10.5px;
         font-weight: 700;
         color: #475569;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .cf-input, .cf-select, .cf-textarea {
-        height: 38px;
-        padding: 0 12px;
+        height: 34px;
+        padding: 0 10px;
         border: 1px solid #cbd5e1;
-        border-radius: 8px;
+        border-radius: 7px;
         background: #ffffff;
-        font-size: 13.5px;
+        font-size: 12.5px;
         color: #0f172a;
         box-sizing: border-box;
         outline: none;
+        width: 100%;
         transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    }
-    .cf-textarea {
-        height: auto;
-        min-height: 70px;
-        padding: 10px 12px;
-        resize: vertical;
     }
     .cf-input:focus, .cf-select:focus, .cf-textarea:focus {
         border-color: #0284c7;
-        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.14);
     }
 
     /* Combobox for Gateway Search & Add */
@@ -484,16 +482,17 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => ($a['status'] ?? 
         position: relative;
     }
     .cf-gw-trigger {
-        height: 38px;
-        padding: 0 12px;
+        height: 34px;
+        padding: 0 10px;
         border: 1px solid #cbd5e1;
-        border-radius: 8px;
+        border-radius: 7px;
         background: #ffffff;
         display: flex;
         align-items: center;
         justify-content: space-between;
         cursor: pointer;
         user-select: none;
+        box-sizing: border-box;
         transition: all 0.15s ease;
     }
     .cf-gw-trigger:hover, .cf-gw-trigger.active {
@@ -502,10 +501,21 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => ($a['status'] ?? 
     .cf-gw-selected {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 13.5px;
+        gap: 6px;
+        font-size: 12.5px;
         font-weight: 700;
         color: #0f172a;
+        min-width: 0;
+    }
+    .cf-gw-selected .material-symbols-rounded {
+        font-size: 18px;
+        color: #0284c7;
+        flex-shrink: 0;
+    }
+    .cf-gw-selected span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .cf-gw-dropdown {
         position: absolute;
@@ -1265,8 +1275,8 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => ($a['status'] ?? 
             <form action="<?= defined('BASE_URL') ? BASE_URL : '' ?>/cashflow/exchange" method="POST" id="cf-exchange-form">
                 <?= Security::csrfField() ?>
                 <div class="cf-form-rows">
-                    <!-- ROW 1: Flow, Gateway, Amount, Fee -->
-                    <div class="cf-form-row-1">
+                    <!-- ROW 1: Flow, Gateway, Amount, Fee (4 Symmetrical Columns) -->
+                    <div class="cf-form-grid-4">
                         <!-- 1. Flow Direction -->
                         <div class="cf-field-group">
                             <label class="cf-field-label">Transaction Flow *</label>
@@ -1330,7 +1340,7 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => ($a['status'] ?? 
                         <!-- 3. Exchange Amount -->
                         <div class="cf-field-group">
                             <label class="cf-field-label">Disbursal Amount (<?= $currency ?>) *</label>
-                            <input type="number" step="0.01" min="1" name="amount" id="ex-amount" class="cf-input" placeholder="e.g. 5000" required style="font-weight:800; font-size:15px;" oninput="window.cfApp.updateExchangePreview()">
+                            <input type="number" step="0.01" min="1" name="amount" id="ex-amount" class="cf-input" placeholder="e.g. 5000" required style="font-weight:800; font-size:13.5px; color:#0284c7;" oninput="window.cfApp.updateExchangePreview()">
                         </div>
 
                         <!-- 4. Fee / Commission -->
@@ -1340,8 +1350,8 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => ($a['status'] ?? 
                         </div>
                     </div>
 
-                    <!-- ROW 2: Customer, Phone, IBAN / Account Number, TID Ref, Notes, Submit -->
-                    <div class="cf-form-row-2">
+                    <!-- ROW 2: Customer Name, Phone, Account/IBAN, TID/TRX ID (4 Symmetrical Columns Aligned with Row 1) -->
+                    <div class="cf-form-grid-4">
                         <!-- 1. Customer Name -->
                         <div class="cf-field-group">
                             <label class="cf-field-label">Customer Name</label>
@@ -1354,9 +1364,9 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => ($a['status'] ?? 
                             <input type="text" name="party_phone" class="cf-input" placeholder="03001234567">
                         </div>
 
-                        <!-- 3. Customer Account Number / IBAN Number (Requested by User) -->
+                        <!-- 3. Customer Account Number / IBAN Number -->
                         <div class="cf-field-group">
-                            <label class="cf-field-label">Customer Account / IBAN Number</label>
+                            <label class="cf-field-label">Customer Account / IBAN</label>
                             <input type="text" name="account_number" class="cf-input" placeholder="e.g. PK36MEZN... / 0300...">
                         </div>
 
@@ -1365,17 +1375,21 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => ($a['status'] ?? 
                             <label class="cf-field-label">TID / TRX ID</label>
                             <input type="text" name="reference_no" class="cf-input" placeholder="e.g. TRX-982341">
                         </div>
+                    </div>
 
-                        <!-- 5. Notes -->
+                    <!-- ROW 3: Notes (spans 3 columns) & Action Button (spans 1 column, aligned with column 4) -->
+                    <div class="cf-form-grid-action">
+                        <!-- Notes -->
                         <div class="cf-field-group">
                             <label class="cf-field-label">Notes (Optional)</label>
-                            <input type="text" name="notes" class="cf-input" placeholder="Counter remarks...">
+                            <input type="text" name="notes" class="cf-input" placeholder="Counter remarks or transaction note...">
                         </div>
 
-                        <!-- 6. Submit Button -->
-                        <div>
-                            <button type="submit" class="btn-solid-emerald btn-md" style="width:100%; height:38px; min-width:140px;">
-                                <span class="material-symbols-rounded">done_all</span>
+                        <!-- Submit Button -->
+                        <div class="cf-field-group">
+                            <label class="cf-field-label" style="visibility:hidden;">Action</label>
+                            <button type="submit" class="btn-solid-emerald" style="width:100%; height:34px; font-size:12.5px; font-weight:700; border-radius:7px; display:inline-flex; align-items:center; justify-content:center; gap:6px;">
+                                <span class="material-symbols-rounded" style="font-size:18px;">done_all</span>
                                 Disburse & Save
                             </button>
                         </div>
@@ -1383,9 +1397,9 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => ($a['status'] ?? 
 
                     <!-- Live Calculation Impact Banner -->
                     <div class="cf-impact-banner" id="cf-exchange-impact-banner">
-                        <span><strong>Drawer Cash Impact:</strong> <span id="ex-preview-drawer">-Rs 0.00</span></span>
-                        <span><strong>Online Balance Impact:</strong> <span id="ex-preview-online">+Rs 0.00</span></span>
-                        <span><strong>Store Commission:</strong> <span id="ex-preview-fee">+Rs 0.00</span></span>
+                        <span><strong>Drawer Cash Impact:</strong> <span id="ex-preview-drawer" style="font-weight:700;">-Rs 0.00</span></span>
+                        <span><strong>Online Balance Impact:</strong> <span id="ex-preview-online" style="font-weight:700;">+Rs 0.00</span></span>
+                        <span><strong>Store Commission:</strong> <span id="ex-preview-fee" style="font-weight:700; color:#059669;">+Rs 0.00</span></span>
                     </div>
                 </div>
             </form>
