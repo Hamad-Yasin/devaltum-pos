@@ -332,6 +332,56 @@ class InventoryController extends Controller {
         ]);
     }
 
+    public function exportBarcodeDocx() {
+        $db = Database::getInstance();
+        [$where, $whereParams] = Tenant::storeFilter();
+
+        $productId = (int) ($_POST['product_id'] ?? $_GET['product_id'] ?? 0);
+        $product = null;
+        if ($productId > 0) {
+            $product = $db->fetch("SELECT * FROM products WHERE id = ? AND $where LIMIT 1", array_merge([$productId], $whereParams));
+        }
+
+        $activeStore = Tenant::activeStore();
+        $defaultStoreName = $activeStore['name'] ?? App::setting('company_name', 'DevAltum Store');
+
+        $storeName = trim((string) ($_POST['store_name'] ?? $_GET['store_name'] ?? $defaultStoreName));
+        $productName = trim((string) ($_POST['product_name'] ?? $_GET['product_name'] ?? ($product['name'] ?? 'Product')));
+        $barcode = trim((string) ($_POST['barcode'] ?? $_GET['barcode'] ?? ($product['barcode'] ?? '123456789012')));
+        $price = (float) ($_POST['price'] ?? $_GET['price'] ?? ($product['price'] ?? 0));
+        $quantity = max(1, min(1000, (int) ($_POST['quantity'] ?? $_GET['quantity'] ?? 30)));
+        $columns = max(1, min(6, (int) ($_POST['columns'] ?? $_GET['columns'] ?? 3)));
+        $currency = App::setting('currency_symbol', 'Rs');
+
+        require_once ROOT_PATH . '/core/helpers/BarcodeDocxHelper.php';
+        $docxBinary = BarcodeDocxHelper::createDocx([
+            'store_name' => $storeName,
+            'product_name' => $productName,
+            'barcode' => $barcode,
+            'price' => $price,
+            'currency' => $currency,
+            'quantity' => $quantity,
+            'columns' => $columns
+        ]);
+
+        $safeFileName = preg_replace('/[^A-Za-z0-9_-]/', '_', $productName);
+        if (empty($safeFileName)) $safeFileName = 'Barcodes';
+        $filename = "{$safeFileName}_Barcodes_{$quantity}pcs.docx";
+
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . strlen($docxBinary));
+        header('Cache-Control: max-age=0');
+        header('Pragma: public');
+
+        echo $docxBinary;
+        exit;
+    }
+
 
     public function generateBarcode() {
         $barcode = BarcodeHelper::generateEan13();
