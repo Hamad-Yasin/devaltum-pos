@@ -1601,6 +1601,27 @@ document.addEventListener('DOMContentLoaded', () => {
         })
             .then(async (res) => {
                 if (!res.ok) throw new Error('Network error');
+
+                const disposition = res.headers.get('content-disposition') || '';
+                const contentType = res.headers.get('content-type') || '';
+                if (disposition.includes('attachment') || (!contentType.includes('application/json') && !contentType.includes('text/html'))) {
+                    const blob = await res.blob();
+                    let filename = 'download';
+                    const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
+                    if (match && match[1]) {
+                        filename = match[1].replace(/['"]/g, '').trim();
+                    }
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1500);
+                    return;
+                }
+
                 const data = await res.json();
                 
                 if (data.error) {
@@ -1750,7 +1771,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        if (form.hasAttribute('data-no-ajax')) {
+        if (form.hasAttribute('data-no-ajax') || action.includes('export') || action.includes('download')) {
             return;
         }
 

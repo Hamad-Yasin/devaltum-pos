@@ -544,7 +544,7 @@ $productUnit = App::formatProductUnit($product['unit_value'] ?? 1, $product['uni
             </div>
 
             <!-- Export Form (No target=_blank so it downloads directly without opening blank window) -->
-            <form action="<?= defined('BASE_URL') ? BASE_URL : '' ?>/inventory/exportBarcodeDocx" method="POST" id="word-export-form">
+            <form action="<?= defined('BASE_URL') ? BASE_URL : '' ?>/inventory/exportBarcodeDocx" method="POST" id="word-export-form" data-no-ajax="true">
                 <?= Security::csrfField() ?>
                 <input type="hidden" name="product_id" value="<?= (int)($product['id'] ?? 0) ?>">
 
