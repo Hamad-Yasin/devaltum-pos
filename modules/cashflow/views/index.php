@@ -1817,7 +1817,7 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => ($a['status'] ?? 
     // Encapsulated safe Cashflow App object attached to window.cfApp
     const getBaseUrl = () => window.BASE_URL || '';
     const getCsrfToken = () => {
-        return window.appCsrfToken || document.querySelector('input[name="csrf_token"]')?.value || '<?= Security::csrfToken() ?>';
+        return window.appCsrfToken || document.querySelector('input[name="csrf_token"]')?.value || '<?= Security::generateCsrfToken() ?>';
     };
     const currency = '<?= $currency ?>';
     let activeVoucherTx = null;

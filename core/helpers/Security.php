@@ -10,6 +10,10 @@ class Security {
         return $_SESSION['csrf_token'];
     }
 
+    public static function csrfToken() {
+        return self::generateCsrfToken();
+    }
+
     // Verify CSRF token
     public static function verifyCsrfToken($token) {
         if (!is_string($token) || $token === '') {
