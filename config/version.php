@@ -13,3 +13,4 @@ return [
         'Global Ultra-Slim Scrollbars: Unified 6px modern custom scrollbars across the application.'
     ]
 ];
+
