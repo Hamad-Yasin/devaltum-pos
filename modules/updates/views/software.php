@@ -95,7 +95,7 @@
             <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12.5px;">
                 <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
                     <span style="color: #64748b;">Installed Version</span>
-                    <strong style="color: #0f172a; font-weight: 800;">v<?= htmlspecialchars($currentVersion) ?></strong>
+                    <strong style="color: #0f172a; font-weight: 800;" id="system-installed-version">v<?= htmlspecialchars($currentVersion) ?></strong>
                 </div>
                 <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
                     <span style="color: #64748b;">Architecture</span>
@@ -118,13 +118,19 @@
         <div class="card" style="padding: 22px; border-radius: 18px; border: 1px solid #e2e8f0; background: #ffffff;">
             <h3 style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: #64748b; margin: 0 0 14px; display: flex; align-items: center; gap: 6px;">
                 <span class="material-symbols-rounded" style="font-size: 16px; color: #059669;">verified</span>
-                Version <?= htmlspecialchars($currentVersion) ?> Highlights
+                <span id="highlights-version-title">Version <?= htmlspecialchars($currentVersion) ?> Highlights</span>
             </h3>
             <ul style="margin: 0; padding-left: 18px; font-size: 12.5px; color: #475569; line-height: 1.6; display: flex; flex-direction: column; gap: 6px;">
-                <li><strong>Universal Token Auto-Healing:</strong> Permanent fix for form timeouts and security token mismatches.</li>
-                <li><strong>Biometric Passkey Support:</strong> Direct Windows Hello fingerprint & hardware authentication.</li>
-                <li><strong>Fast Tab Switching:</strong> Seamless store settings switching without freezing.</li>
-                <li><strong>Clean Safe Uninstaller:</strong> Optional permanent wipe checkbox with background lock release.</li>
+                <?php if (!empty($highlights)): ?>
+                    <?php foreach ($highlights as $hl): ?>
+                        <li><?= Security::escape($hl) ?></li>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <li><strong>Receipt & Print Pop-up Fix:</strong> Dedicated popup window on POS checkout & sales profile.</li>
+                    <li><strong>Barcode Symbology Studio:</strong> Standard EAN-13 & Code 128 support with live preview & Word export.</li>
+                    <li><strong>Compact Cash Disbursal:</strong> Symmetrical 4-column layout with instant calculations.</li>
+                    <li><strong>Global Ultra-Slim Scrollbars:</strong> Unified 6px modern custom scrollbars across the application.</li>
+                <?php endif; ?>
             </ul>
         </div>
 
@@ -259,6 +265,25 @@
     }
 
     if (isDesktop) {
+        if (window.desktopAPI.getSystemInfo) {
+            window.desktopAPI.getSystemInfo().then(info => {
+                if (info && info.version) {
+                    const liveVer = info.version;
+                    const headerBadge = document.getElementById('header-version-badge');
+                    if (headerBadge) headerBadge.textContent = 'v' + liveVer;
+
+                    const stateBadge = document.getElementById('state-badge');
+                    if (stateBadge) stateBadge.innerHTML = `<span style="width: 6px; height: 6px; border-radius: 50%; background: #10b981;"></span> Version ${liveVer} Installed`;
+
+                    const sysVer = document.getElementById('system-installed-version');
+                    if (sysVer) sysVer.textContent = 'v' + liveVer;
+
+                    const hlTitle = document.getElementById('highlights-version-title');
+                    if (hlTitle) hlTitle.textContent = `Version ${liveVer} Highlights`;
+                }
+            }).catch(() => {});
+        }
+
         window.desktopAPI.onUpdateStatus(data => {
             resetCheckBtn();
             if (!data) return;

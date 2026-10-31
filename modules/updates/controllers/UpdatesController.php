@@ -89,12 +89,24 @@ class UpdatesController extends Controller {
     }
 
     public function software() {
-        $packageJsonPath = dirname(__DIR__, 2) . '/DevAltum POS Desktop Version/package.json';
-        $currentVersion = '1.1.6';
-        if (file_exists($packageJsonPath)) {
-            $pkgData = json_decode(file_get_contents($packageJsonPath), true);
-            if (!empty($pkgData['version'])) {
-                $currentVersion = $pkgData['version'];
+        $currentVersion = '1.1.7';
+        $highlights = [];
+        $versionConfig = ROOT_PATH . '/config/version.php';
+        if (file_exists($versionConfig)) {
+            $verData = require $versionConfig;
+            if (!empty($verData['version'])) {
+                $currentVersion = $verData['version'];
+            }
+            if (!empty($verData['highlights'])) {
+                $highlights = $verData['highlights'];
+            }
+        } else {
+            $packageJsonPath = dirname(__DIR__, 2) . '/DevAltum POS Desktop Version/package.json';
+            if (file_exists($packageJsonPath)) {
+                $pkgData = json_decode(file_get_contents($packageJsonPath), true);
+                if (!empty($pkgData['version'])) {
+                    $currentVersion = $pkgData['version'];
+                }
             }
         }
 
@@ -102,6 +114,7 @@ class UpdatesController extends Controller {
             'pageTitle' => 'DevAltum POS - Software Updates Center',
             'activeMenu' => 'software_updates',
             'currentVersion' => $currentVersion,
+            'highlights' => $highlights,
             'githubRepo' => 'Hamad-Yasin/devaltum-pos'
         ]);
     }
