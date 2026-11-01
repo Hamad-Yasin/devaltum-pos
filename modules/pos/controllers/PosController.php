@@ -31,7 +31,14 @@ class PosController extends Controller {
 
         $autoAddProduct = null;
         if (!empty($_GET['add'])) {
-            $autoAddProduct = $db->fetch("SELECT id, name, model_number, barcode, price, wholesale_price, cost, stock, unit_type, 1 AS scan_quantity FROM products WHERE id = ? AND $where", array_merge([$_GET['add']], $whereParams));
+            $autoAddProduct = $db->fetch("SELECT id, name, model_number, barcode, price, wholesale_price, cost, stock, unit_type, pack_unit, pieces_per_pack, pack_price, pack_barcode, 1 AS scan_quantity FROM products WHERE id = ? AND $where", array_merge([$_GET['add']], $whereParams));
+            if ($autoAddProduct) {
+                $autoAddProduct['pack_unit'] = trim((string) ($autoAddProduct['pack_unit'] ?? 'Box')) ?: 'Box';
+                $autoAddProduct['pieces_per_pack'] = max(1, (int) ($autoAddProduct['pieces_per_pack'] ?? 1));
+                $autoAddProduct['pack_price'] = !empty($autoAddProduct['pack_price']) ? (float) $autoAddProduct['pack_price'] : ((float) $autoAddProduct['price'] * $autoAddProduct['pieces_per_pack']);
+                $autoAddProduct['pack_multiplier'] = 1;
+                $autoAddProduct['sale_unit'] = 'piece';
+            }
         } elseif (!empty($_GET['scan'])) {
             $rawScan = trim((string) $_GET['scan']);
             $normScan = App::normalizeBarcode($rawScan);
@@ -42,6 +49,7 @@ class PosController extends Controller {
                 "SELECT 
                     p.id, p.parent_product_id, p.name, p.model_number, p.barcode, p.price, p.wholesale_price, p.cost, p.stock,
                     p.unit_value, p.unit_type, p.variant_label,
+                    p.pack_unit, p.pieces_per_pack, p.pack_price, p.pack_barcode,
                     COALESCE(psc.quantity, 1) AS scan_quantity,
                     COALESCE(psc.scan_type, 'single') AS scan_type,
                     COALESCE(psc.label, '') AS scan_label
@@ -56,6 +64,8 @@ class PosController extends Controller {
                          OR psc.code = ?
                          OR p.barcode = ?
                          OR p.barcode = ?
+                         OR p.pack_barcode = ?
+                         OR p.pack_barcode = ?
                          OR p.model_number = ?
                          OR p.model_number = ?
                          OR p.name = ?
@@ -66,9 +76,32 @@ class PosController extends Controller {
                 array_merge(
                     [$normScan, $rawScan],
                     $storeParams,
-                    [$normScan, $rawScan, $normScan, $rawScan, $normScan, $rawScan, $rawScan, $numericId, $numericId]
+                    [$normScan, $rawScan, $normScan, $rawScan, $normScan, $rawScan, $normScan, $rawScan, $normScan, $rawScan, $rawScan, $numericId, $numericId]
                 )
             );
+
+            if ($autoAddProduct) {
+                $packUnit = trim((string) ($autoAddProduct['pack_unit'] ?? 'Box')) ?: 'Box';
+                $piecesPerPack = max(1, (int) ($autoAddProduct['pieces_per_pack'] ?? 1));
+                $packPrice = !empty($autoAddProduct['pack_price']) ? (float) $autoAddProduct['pack_price'] : ((float) $autoAddProduct['price'] * $piecesPerPack);
+                $packBarcode = trim((string) ($autoAddProduct['pack_barcode'] ?? ''));
+
+                $isBox = ($autoAddProduct['scan_type'] === 'box') ||
+                         ($packBarcode !== '' && ($normScan === $packBarcode || $rawScan === $packBarcode));
+
+                $autoAddProduct['pack_unit'] = $packUnit;
+                $autoAddProduct['pieces_per_pack'] = $piecesPerPack;
+                $autoAddProduct['pack_price'] = $packPrice;
+                $autoAddProduct['pack_barcode'] = $packBarcode;
+                $autoAddProduct['sale_unit'] = $isBox ? 'pack' : 'piece';
+                $autoAddProduct['pack_multiplier'] = $isBox ? $piecesPerPack : 1;
+                $autoAddProduct['scan_type'] = $isBox ? 'box' : 'single';
+                $autoAddProduct['scan_quantity'] = $isBox ? $piecesPerPack : 1;
+                $autoAddProduct['scan_label'] = $isBox ? ($packUnit . ' of ' . $piecesPerPack) : '';
+                if ($isBox) {
+                    $autoAddProduct['price'] = $packPrice;
+                }
+            }
         }
         $storeId = (int) Tenant::currentStoreId();
         $mainOnlineAccount = $db->fetch("SELECT id, account_name, account_number, current_balance FROM financial_accounts WHERE store_id = ? AND account_type != 'cash' AND status = 'active' ORDER BY is_default DESC, id ASC LIMIT 1", [$storeId]);
@@ -368,6 +401,7 @@ class PosController extends Controller {
             }
 
             $hasInvoiceItemIsReturn = $this->hasColumn($connection, 'invoice_items', 'is_return');
+            $hasInvoiceItemPackMultiplier = $this->hasColumn($connection, 'invoice_items', 'pack_multiplier');
             $saleSubtotal = 0;
             $returnSubtotal = 0;
             $itemRowsToProcess = [];
@@ -384,6 +418,13 @@ class PosController extends Controller {
                 $modelNumber = trim($item['model_number'] ?? '');
                 $productId = empty($item['id']) ? null : (int) $item['id'];
                 $isItemReturn = (!empty($item['is_return']) || $transactionType === 'Return') ? 1 : 0;
+                $packMultiplier = max(1, (int) ($item['pack_multiplier'] ?? 1));
+                $packUnit = trim((string) ($item['pack_unit'] ?? ''));
+
+                $displayName = $itemName;
+                if ($packMultiplier > 1 && $packUnit !== '' && stripos($displayName, $packUnit) === false) {
+                    $displayName .= ' (' . $packUnit . ' of ' . $packMultiplier . ')';
+                }
 
                 $itemCost = 0.0;
                 if (!$productId) {
@@ -409,9 +450,12 @@ class PosController extends Controller {
 
                 $itemRowsToProcess[] = [
                     'product_id' => $productId,
-                    'name' => $itemName,
+                    'name' => $displayName,
                     'model_number' => $modelNumber ?: null,
                     'quantity' => $itemQty,
+                    'pack_multiplier' => $packMultiplier,
+                    'pack_unit' => $packUnit ?: null,
+                    'total_base_qty' => $itemQty * $packMultiplier,
                     'price' => $itemPrice,
                     'discount' => $itemDiscount,
                     'total' => $itemSubtotal,
@@ -428,7 +472,28 @@ class PosController extends Controller {
             }
 
             foreach ($itemRowsToProcess as $row) {
-                if ($hasInvoiceItemIsReturn) {
+                if ($hasInvoiceItemPackMultiplier && $hasInvoiceItemIsReturn) {
+                    $itemStmt = $connection->prepare("
+                        INSERT INTO invoice_items (store_id, invoice_id, product_id, product_name, model_number, quantity, pack_multiplier, pack_unit, price, price_tier, is_return, discount, total, cost_price)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    $itemStmt->execute([
+                        $storeId,
+                        $invoiceId,
+                        $row['product_id'],
+                        $row['name'],
+                        $row['model_number'],
+                        $row['quantity'],
+                        $row['pack_multiplier'],
+                        $row['pack_unit'],
+                        $row['price'],
+                        $saleChannel,
+                        $row['is_return'],
+                        $row['discount'],
+                        $row['total'],
+                        $row['cost_price']
+                    ]);
+                } elseif ($hasInvoiceItemIsReturn) {
                     $itemStmt = $connection->prepare("
                         INSERT INTO invoice_items (store_id, invoice_id, product_id, product_name, model_number, quantity, price, price_tier, is_return, discount, total, cost_price)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -469,11 +534,11 @@ class PosController extends Controller {
 
                 if ($status === 'paid' && $row['product_id']) {
                     if ($row['is_return']) {
-                        // Product Return / Exchange Return: Item added back to product inventory!
-                        $connection->prepare("UPDATE products SET stock = stock + ? WHERE id = ? AND store_id = ?")->execute([$row['quantity'], $row['product_id'], $storeId]);
+                        // Product Return / Exchange Return: Item added back to product inventory (exact base pieces)!
+                        $connection->prepare("UPDATE products SET stock = stock + ? WHERE id = ? AND store_id = ?")->execute([$row['total_base_qty'], $row['product_id'], $storeId]);
                     } else {
-                        // Product Sale: Stock deducted from inventory
-                        $connection->prepare("UPDATE products SET stock = GREATEST(stock - ?, 0) WHERE id = ? AND store_id = ?")->execute([$row['quantity'], $row['product_id'], $storeId]);
+                        // Product Sale: Stock deducted from inventory (exact base pieces)!
+                        $connection->prepare("UPDATE products SET stock = GREATEST(stock - ?, 0) WHERE id = ? AND store_id = ?")->execute([$row['total_base_qty'], $row['product_id'], $storeId]);
                     }
                 }
             }

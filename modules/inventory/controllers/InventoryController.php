@@ -87,6 +87,11 @@ class InventoryController extends Controller {
         $stock = max(0, (float) ($_POST['stock'] ?? 0));
         $minStock = max(0, (float) ($_POST['min_stock'] ?? 5));
         $isVisibleOnline = isset($_POST['is_visible_online']) ? 1 : 0;
+        $packUnit = trim((string) ($_POST['pack_unit'] ?? 'Box')) ?: 'Box';
+        $piecesPerPack = max(1, (int) ($_POST['pieces_per_pack'] ?? 1));
+        $packPriceRaw = trim((string) ($_POST['pack_price'] ?? ''));
+        $packPrice = ($packPriceRaw !== '') ? (float) $packPriceRaw : null;
+        $packBarcode = App::normalizeBarcode($_POST['pack_barcode'] ?? '');
 
         if ($name === '') {
             $this->flash('error', 'Product name is required.');
@@ -105,11 +110,15 @@ class InventoryController extends Controller {
         App::addColumnIfMissing($db, 'products', 'batch_number', "VARCHAR(80) NULL AFTER `min_stock`");
         App::addColumnIfMissing($db, 'products', 'expiry_date', "DATE NULL AFTER `batch_number`");
         App::addColumnIfMissing($db, 'products', 'is_visible_online', "TINYINT(1) NOT NULL DEFAULT 1");
+        App::addColumnIfMissing($db, 'products', 'pack_unit', "VARCHAR(40) NULL DEFAULT 'Box'");
+        App::addColumnIfMissing($db, 'products', 'pieces_per_pack', "INT NOT NULL DEFAULT 1");
+        App::addColumnIfMissing($db, 'products', 'pack_price', "DECIMAL(12,2) NULL");
+        App::addColumnIfMissing($db, 'products', 'pack_barcode', "VARCHAR(80) NULL");
 
         $imagePath = $this->uploadProductImage('product_image');
         $db->query(
-            "INSERT INTO products (store_id, name, model_number, barcode, unit_value, unit_type, image_path, price, wholesale_price, cost, stock, min_stock, expiry_date, batch_number, is_visible_online) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            [$storeId, $name, $model ?: null, $barcode ?: null, $unitValue, $unitType, $imagePath ?: null, $price, $wholesalePrice, $cost, $stock, $minStock, $expiryDate, $batchNumber ?: null, $isVisibleOnline]
+            "INSERT INTO products (store_id, name, model_number, barcode, unit_value, unit_type, image_path, price, wholesale_price, cost, stock, min_stock, expiry_date, batch_number, is_visible_online, pack_unit, pieces_per_pack, pack_price, pack_barcode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [$storeId, $name, $model ?: null, $barcode ?: null, $unitValue, $unitType, $imagePath ?: null, $price, $wholesalePrice, $cost, $stock, $minStock, $expiryDate, $batchNumber ?: null, $isVisibleOnline, $packUnit, $piecesPerPack, $packPrice, $packBarcode ?: null]
         );
         $productId = (int) $db->lastInsertId();
 
@@ -167,6 +176,11 @@ class InventoryController extends Controller {
             $stock = max(0, (float) ($_POST['stock'] ?? 0));
             $minStock = max(0, (float) ($_POST['min_stock'] ?? 5));
             $isVisibleOnline = isset($_POST['is_visible_online']) ? 1 : 0;
+            $packUnit = trim((string) ($_POST['pack_unit'] ?? 'Box')) ?: 'Box';
+            $piecesPerPack = max(1, (int) ($_POST['pieces_per_pack'] ?? 1));
+            $packPriceRaw = trim((string) ($_POST['pack_price'] ?? ''));
+            $packPrice = ($packPriceRaw !== '') ? (float) $packPriceRaw : null;
+            $packBarcode = App::normalizeBarcode($_POST['pack_barcode'] ?? '');
             $batchNumber = trim($_POST['batch_number'] ?? '');
             $expiryDate = trim($_POST['expiry_date'] ?? '');
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $expiryDate)) {
@@ -182,10 +196,14 @@ class InventoryController extends Controller {
             App::addColumnIfMissing($db, 'products', 'batch_number', "VARCHAR(80) NULL AFTER `min_stock`");
             App::addColumnIfMissing($db, 'products', 'expiry_date', "DATE NULL AFTER `batch_number`");
             App::addColumnIfMissing($db, 'products', 'is_visible_online', "TINYINT(1) NOT NULL DEFAULT 1");
+            App::addColumnIfMissing($db, 'products', 'pack_unit', "VARCHAR(40) NULL DEFAULT 'Box'");
+            App::addColumnIfMissing($db, 'products', 'pieces_per_pack', "INT NOT NULL DEFAULT 1");
+            App::addColumnIfMissing($db, 'products', 'pack_price', "DECIMAL(12,2) NULL");
+            App::addColumnIfMissing($db, 'products', 'pack_barcode', "VARCHAR(80) NULL");
 
             $db->query(
-                "UPDATE products SET name=?, model_number=?, barcode=?, unit_value=?, unit_type=?, image_path=?, price=?, wholesale_price=?, cost=?, stock=?, min_stock=?, expiry_date=?, batch_number=?, is_visible_online=? WHERE id=? AND $where",
-                array_merge([$name, $model ?: null, $barcode ?: null, $unitValue, $unitType, $imagePath ?: null, $price, $wholesalePrice, $cost, $stock, $minStock, $expiryDate, $batchNumber ?: null, $isVisibleOnline, $id], $whereParams)
+                "UPDATE products SET name=?, model_number=?, barcode=?, unit_value=?, unit_type=?, image_path=?, price=?, wholesale_price=?, cost=?, stock=?, min_stock=?, expiry_date=?, batch_number=?, is_visible_online=?, pack_unit=?, pieces_per_pack=?, pack_price=?, pack_barcode=? WHERE id=? AND $where",
+                array_merge([$name, $model ?: null, $barcode ?: null, $unitValue, $unitType, $imagePath ?: null, $price, $wholesalePrice, $cost, $stock, $minStock, $expiryDate, $batchNumber ?: null, $isVisibleOnline, $packUnit, $piecesPerPack, $packPrice, $packBarcode ?: null, $id], $whereParams)
             );
             $this->syncProductScanCodes($db, (int) $id, $barcode, $_POST);
             $this->syncProductVariants($db, (int) $id, [
@@ -1471,6 +1489,18 @@ class InventoryController extends Controller {
         $mainBarcode = App::normalizeBarcode($barcode);
         if ($mainBarcode !== '') {
             $codes[] = ['code' => $mainBarcode, 'type' => 'single', 'quantity' => 1, 'label' => 'Single Item'];
+        }
+
+        $packBarcode = App::normalizeBarcode($post['pack_barcode'] ?? '');
+        $packPieces = max(1, (int) ($post['pieces_per_pack'] ?? 1));
+        $packUnit = trim((string) ($post['pack_unit'] ?? 'Box')) ?: 'Box';
+        if ($packBarcode !== '' && $packPieces > 1) {
+            $codes[] = [
+                'code' => $packBarcode,
+                'type' => 'box',
+                'quantity' => $packPieces,
+                'label' => $packUnit . ' of ' . $packPieces
+            ];
         }
 
         $extraCodes = is_array($post['scan_code'] ?? null) ? $post['scan_code'] : [];

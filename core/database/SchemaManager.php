@@ -784,6 +784,10 @@ class SchemaManager {
             ['products', 'expiry_date', "DATE NULL"],
             ['products', 'is_visible_online', "TINYINT(1) NOT NULL DEFAULT 1"],
             ['products', 'is_custom', "TINYINT(1) NOT NULL DEFAULT 0"],
+            ['products', 'pack_unit', "VARCHAR(40) NULL DEFAULT 'Box'"],
+            ['products', 'pieces_per_pack', "INT NOT NULL DEFAULT 1"],
+            ['products', 'pack_price', "DECIMAL(12,2) NULL"],
+            ['products', 'pack_barcode', "VARCHAR(80) NULL"],
             ['products', 'updated_at', "TIMESTAMP NULL DEFAULT NULL"],
 
             ['customers', 'address', "VARCHAR(255) NULL"],
@@ -820,6 +824,8 @@ class SchemaManager {
             ['invoice_items', 'model_number', "VARCHAR(100) NULL"],
             ['invoice_items', 'price_tier', "VARCHAR(20) NOT NULL DEFAULT 'retail'"],
             ['invoice_items', 'cost_price', "DECIMAL(12,2) NULL"],
+            ['invoice_items', 'pack_multiplier', "INT NOT NULL DEFAULT 1"],
+            ['invoice_items', 'pack_unit', "VARCHAR(40) NULL"],
 
             ['payment_transactions', 'plan_id', "INT NULL"],
             ['payment_transactions', 'receipt_screenshot', "VARCHAR(255) NULL"],
@@ -867,12 +873,11 @@ class SchemaManager {
      */
     public static function addColumnIfMissing(PDO $pdo, $table, $column, $definition) {
         $tableClean = str_replace('`', '', $table);
-        $columnClean = str_replace(['`', '\\'], '', $column);
+        $columnClean = str_replace(['`', '\\', "'"], '', $column);
 
         try {
-            $stmt = $pdo->prepare("SHOW COLUMNS FROM `$tableClean` LIKE ?");
-            $stmt->execute([$columnClean]);
-            $exists = $stmt->fetch();
+            $stmt = $pdo->query("SHOW COLUMNS FROM `$tableClean` LIKE '$columnClean'");
+            $exists = $stmt ? $stmt->fetch() : false;
             if (!$exists) {
                 $pdo->exec("ALTER TABLE `$tableClean` ADD COLUMN `$columnClean` $definition");
             }

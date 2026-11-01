@@ -665,6 +665,12 @@ class App {
         self::addColumnIfMissing($db, 'products', 'image_path', "VARCHAR(255) NULL AFTER `unit_type`");
         self::addColumnIfMissing($db, 'products', 'parent_product_id', "INT NULL AFTER `id`");
         self::addColumnIfMissing($db, 'products', 'variant_label', "VARCHAR(120) NULL AFTER `parent_product_id`");
+        self::addColumnIfMissing($db, 'products', 'pack_unit', "VARCHAR(40) NULL DEFAULT 'Box' AFTER `unit_type`");
+        self::addColumnIfMissing($db, 'products', 'pieces_per_pack', "INT NOT NULL DEFAULT 1 AFTER `pack_unit`");
+        self::addColumnIfMissing($db, 'products', 'pack_price', "DECIMAL(12,2) NULL AFTER `pieces_per_pack`");
+        self::addColumnIfMissing($db, 'products', 'pack_barcode', "VARCHAR(80) NULL AFTER `pack_price`");
+        self::addColumnIfMissing($db, 'invoice_items', 'pack_multiplier', "INT NOT NULL DEFAULT 1 AFTER `quantity`");
+        self::addColumnIfMissing($db, 'invoice_items', 'pack_unit', "VARCHAR(40) NULL AFTER `pack_multiplier`");
         self::addColumnIfMissing($db, 'invoices', 'transaction_type', "VARCHAR(20) NOT NULL DEFAULT 'Sale'");
         self::addColumnIfMissing($db, 'invoices', 'notes', "TEXT NULL");
         self::addColumnIfMissing($db, 'invoices', 'customer_name_snapshot', "VARCHAR(255) NULL");
@@ -2424,6 +2430,31 @@ class App {
             return rtrim(rtrim(number_format($val, 3, '.', ''), '0'), '.');
         }
         return (string) ((int) $val);
+    }
+
+    public static function formatPackagingStock($stock, $piecesPerPack = 1, $packUnit = 'Box', $baseUnit = 'Pcs') {
+        $total = (float) ($stock ?? 0);
+        $ppp = max(1, (int) ($piecesPerPack ?? 1));
+        $packLabel = trim((string) ($packUnit ?: 'Box'));
+        $baseLabel = trim((string) ($baseUnit ?: 'Pcs'));
+
+        if ($ppp <= 1) {
+            return self::formatQuantity($total) . ' ' . $baseLabel;
+        }
+
+        $boxes = (int) floor($total / $ppp);
+        $loose = (int) fmod($total, $ppp);
+
+        $parts = [];
+        if ($boxes > 0) {
+            $plural = (strtolower(substr($packLabel, -1)) === 'x' || strtolower(substr($packLabel, -2)) === 'ch' || strtolower(substr($packLabel, -2)) === 'sh') ? ($packLabel . 'es') : ($packLabel . 's');
+            $parts[] = $boxes . ' ' . ($boxes === 1 ? $packLabel : $plural);
+        }
+        if ($loose > 0 || empty($parts)) {
+            $parts[] = $loose . ' ' . ($loose === 1 ? 'Pc' : $baseLabel);
+        }
+
+        return implode(' + ', $parts) . ' (' . self::formatQuantity($total) . ' ' . $baseLabel . ')';
     }
 
     private static function runDailyModuleBackups($db) {

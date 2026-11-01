@@ -895,6 +895,65 @@ $productCodes = $productCodes ?? [];
             </section>
 
             <?php
+            $packUnitVal = trim((string)($product['pack_unit'] ?? 'Box')) ?: 'Box';
+            $piecesPerPackVal = max(1, (int)($product['pieces_per_pack'] ?? 1));
+            $packPriceVal = !empty($product['pack_price']) ? (float)$product['pack_price'] : '';
+            $packBarcodeVal = Security::escape($product['pack_barcode'] ?? '');
+            $stockVal = (float)($product['stock'] ?? 0);
+            $hasPackaging = $piecesPerPackVal > 1;
+            $sealedBoxes = $hasPackaging ? (int)floor($stockVal / $piecesPerPackVal) : 0;
+            $loosePcs = $hasPackaging ? (int)fmod($stockVal, $piecesPerPackVal) : $stockVal;
+            ?>
+            <section class="inventory-edit-card" id="edit-product-pack-card">
+                <div class="inventory-edit-section-title" style="justify-content:space-between;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="material-symbols-rounded" style="background:#eff6ff; color:#0284c7;">inventory_2</span>
+                        <div>
+                            <div>Packaging & Box / Packet Multipliers</div>
+                            <div style="font-size:11.5px; color:#64748b; font-weight:normal; margin-top:2px;">Sell in full cartons/boxes or single loose pieces with seamless inventory tracking</div>
+                        </div>
+                    </div>
+                    <?php if ($hasPackaging): ?>
+                        <span class="badge" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-weight:800; font-size:11.5px; padding:4px 8px;">
+                            📦 <?php echo $sealedBoxes; ?> <?php echo Security::escape($packUnitVal . ($sealedBoxes === 1 ? '' : 'es')); ?> + <?php echo $loosePcs; ?> Loose Pcs
+                        </span>
+                    <?php endif; ?>
+                </div>
+                <div class="inventory-edit-grid">
+                    <div class="form-group">
+                        <label class="form-label">Pack / Box Unit Name</label>
+                        <input class="form-input" type="text" name="pack_unit" id="edit_pack_unit" value="<?php echo Security::escape($packUnitVal); ?>" placeholder="e.g. Box, Packet, Carton">
+                        <span class="form-hint" style="font-size:11px; color:#64748b;">Name of outer container (e.g. Box, Packet)</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Pieces Inside 1 Pack / Box</label>
+                        <input class="form-input" type="number" min="1" step="1" name="pieces_per_pack" id="edit_pieces_per_pack" value="<?php echo $piecesPerPackVal; ?>" placeholder="e.g. 48">
+                        <span class="form-hint" style="font-size:11px; color:#64748b;">Set > 1 to enable box vs loose piece tracking (e.g. 48)</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Pack / Box Sale Price</label>
+                        <input class="form-input" type="number" step="0.01" min="0" name="pack_price" id="edit_pack_price" value="<?php echo $packPriceVal; ?>" placeholder="e.g. 4800.00">
+                        <span class="form-hint" style="font-size:11px; color:#64748b;">Leave blank to auto-calculate (Unit Price &times; Pieces)</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Pack / Box Barcode <span style="font-size:11px; color:#64748b; font-weight:normal;">(Outer Carton Barcode)</span></label>
+                        <input class="form-input" type="text" name="pack_barcode" id="edit_pack_barcode" value="<?php echo $packBarcodeVal; ?>" placeholder="Outer box barcode to scan">
+                        <span class="form-hint" style="font-size:11px; color:#64748b;">Scanning this barcode at POS sells a full sealed box instantly</span>
+                    </div>
+                </div>
+
+                <div id="packaging_live_breakdown" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px; margin-top:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="material-symbols-rounded" style="color:#0f6dff; font-size:20px;">info</span>
+                        <div style="font-size:12px; color:#334155;">
+                            <strong>How this works:</strong> Total stock is tracked in single pieces (<strong><?php echo App::formatQuantity($stockVal); ?></strong> base pieces).
+                            Selling single pieces deducts 1, selling 1 box deducts <strong><span id="preview_pieces_per_pack"><?php echo $piecesPerPackVal; ?></span></strong> pieces automatically.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <?php
             $hasExpiryData = !empty($product['batch_number']) || !empty($product['expiry_date']);
             ?>
             <section class="inventory-edit-card" id="edit-product-expiry-card">

@@ -177,6 +177,7 @@ class SearchController extends Controller {
                     COALESCE(NULLIF(p.cost, 0), parent.cost, 0) AS cost,
                     p.stock, p.min_stock,
                     p.unit_value, p.unit_type, p.variant_label,
+                    p.pack_unit, p.pieces_per_pack, p.pack_price, p.pack_barcode,
                     COALESCE(psc.quantity, 1) AS scan_quantity,
                     COALESCE(psc.scan_type, 'single') AS scan_type,
                     COALESCE(psc.label, '') AS scan_label,
@@ -195,6 +196,8 @@ class SearchController extends Controller {
                         OR psc.code = ?
                         OR p.barcode = ?
                         OR p.barcode = ?
+                        OR p.pack_barcode = ?
+                        OR p.pack_barcode = ?
                         OR p.model_number = ?
                         OR p.model_number = ?
                         OR p.name = ?
@@ -206,7 +209,7 @@ class SearchController extends Controller {
             array_merge(
                 [$q, $rawQ],
                 $storeParams,
-                [$q, $rawQ, $q, $rawQ, $q, $rawQ, $rawQ, $numericId, $numericId]
+                [$q, $rawQ, $q, $rawQ, $q, $rawQ, $q, $rawQ, $rawQ, $numericId, $numericId]
             )
         );
 
@@ -217,26 +220,45 @@ class SearchController extends Controller {
             ], 200);
         }
 
-        $products = array_map(function ($product) {
-            $qty = max(1, (int) ($product['scan_quantity'] ?? 1));
+        $products = array_map(function ($product) use ($q, $rawQ) {
+            $packUnit = trim((string) ($product['pack_unit'] ?? 'Box')) ?: 'Box';
+            $piecesPerPack = max(1, (int) ($product['pieces_per_pack'] ?? 1));
+            $packPrice = !empty($product['pack_price']) ? (float) $product['pack_price'] : ((float) $product['price'] * $piecesPerPack);
+            $packBarcode = trim((string) ($product['pack_barcode'] ?? ''));
+
+            $isBoxScan = ($product['scan_type'] === 'box') || 
+                         ($packBarcode !== '' && ($q === $packBarcode || $rawQ === $packBarcode));
+
+            $qty = $isBoxScan ? $piecesPerPack : max(1, (int) ($product['scan_quantity'] ?? 1));
+            $scanType = $isBoxScan ? 'box' : ($product['scan_type'] ?? 'single');
+            $scanLabel = $isBoxScan ? ($packUnit . ' of ' . $piecesPerPack) : ($product['scan_label'] ?? '');
+            $effectivePrice = $isBoxScan ? $packPrice : (float) ($product['price'] ?? 0);
+
             return [
                 'id' => (int) $product['id'],
                 'parent_product_id' => (int) ($product['parent_product_id'] ?? 0),
                 'name' => $product['name'],
                 'model_number' => $product['model_number'] ?? '',
                 'barcode' => $product['barcode'] ?? '',
-                'price' => (float) ($product['price'] ?? 0),
+                'price' => $effectivePrice,
+                'retail_price' => (float) ($product['price'] ?? 0),
+                'wholesale_price' => (float) ($product['wholesale_price'] ?? $product['price'] ?? 0),
                 'cost' => (float) ($product['cost'] ?? 0),
                 'cost_price' => (float) ($product['cost'] ?? 0),
-                'wholesale_price' => (float) ($product['wholesale_price'] ?? $product['price'] ?? 0),
-                'stock' => (int) ($product['stock'] ?? 0),
-                'min_stock' => (int) ($product['min_stock'] ?? 0),
+                'stock' => (float) ($product['stock'] ?? 0),
+                'min_stock' => (float) ($product['min_stock'] ?? 0),
                 'unit_value' => (float) ($product['unit_value'] ?? 1),
                 'unit_type' => $product['unit_type'] ?? 'pcs',
                 'variant_label' => $product['variant_label'] ?? '',
+                'pack_unit' => $packUnit,
+                'pieces_per_pack' => $piecesPerPack,
+                'pack_price' => $packPrice,
+                'pack_barcode' => $packBarcode,
+                'pack_multiplier' => $isBoxScan ? $piecesPerPack : 1,
+                'sale_unit' => $isBoxScan ? 'pack' : 'piece',
                 'scan_quantity' => $qty,
-                'scan_type' => $product['scan_type'] ?? 'single',
-                'scan_label' => $product['scan_label'] ?? '',
+                'scan_type' => $scanType,
+                'scan_label' => $scanLabel,
                 'matched_code' => $product['matched_code'] ?? ($product['barcode'] ?? ''),
             ];
         }, $matches);

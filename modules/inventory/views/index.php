@@ -2868,6 +2868,47 @@
 
                     </section>
 
+                    <section class="add-product-panel" id="add-product-pack-panel">
+                        <div class="add-product-panel-head">
+                            <span class="add-product-panel-icon blue"><span class="material-symbols-rounded">inventory_2</span></span>
+                            <div>
+                                <h3 style="margin:0;">Packaging & Box / Packet Multipliers</h3>
+                                <div style="font-size:11.5px; color:#64748b; margin-top:2px;">Sell in full cartons/boxes or single loose pieces with seamless inventory tracking</div>
+                            </div>
+                        </div>
+                        <div class="add-product-grid">
+                            <div class="form-group">
+                                <label class="form-label">Pack / Box Unit Name</label>
+                                <div class="field-icon-wrap">
+                                    <span class="material-symbols-rounded">inventory_2</span>
+                                    <input class="form-input" type="text" name="pack_unit" value="Box" placeholder="e.g. Box, Packet, Carton">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Pieces Inside 1 Pack / Box</label>
+                                <div class="field-icon-wrap">
+                                    <span class="material-symbols-rounded">tag</span>
+                                    <input class="form-input" type="number" min="1" step="1" name="pieces_per_pack" value="1" placeholder="e.g. 48">
+                                </div>
+                                <span class="form-hint" style="font-size:11px; color:#64748b;">Set > 1 to track full boxes & loose items (e.g. 48)</span>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Pack / Box Sale Price</label>
+                                <div class="field-icon-wrap">
+                                    <span class="material-symbols-rounded">price_change</span>
+                                    <input class="form-input" type="number" step="0.01" min="0" name="pack_price" placeholder="Optional (Defaults to Price &times; Pcs)">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Pack / Box Barcode <span style="font-size:11px; color:#64748b; font-weight:normal;">(Outer Carton)</span></label>
+                                <div class="field-icon-wrap">
+                                    <span class="material-symbols-rounded">barcode_scanner</span>
+                                    <input class="form-input" type="text" name="pack_barcode" placeholder="Scan outer carton/box barcode">
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <section class="add-product-panel" id="add-product-expiry-panel">
                         <div class="add-product-panel-head" style="justify-content:space-between;">
                             <div style="display:flex; align-items:center; gap:12px;">
@@ -3063,7 +3104,28 @@
                             <td><?php echo Security::escape($product['model_number'] ?: 'N/A'); ?></td>
                             <td><?php echo App::money($product['price']); ?></td>
                             <td><?php echo App::money($product['wholesale_price'] ?? $product['price']); ?></td>
-                            <td><span class="badge <?php echo $low ? 'badge-danger' : 'badge-success'; ?>"><?php echo Security::escape(App::formatQuantity($product['stock'])); ?> <?php echo Security::escape(strtoupper($product['unit_type'] ?? 'PCS')); ?></span></td>
+                            <td>
+                                <?php
+                                $piecesPerPack = max(1, (int) ($product['pieces_per_pack'] ?? 1));
+                                $packUnit = trim((string) ($product['pack_unit'] ?? 'Box')) ?: 'Box';
+                                $baseUnit = strtoupper(trim((string) ($product['unit_type'] ?? 'PCS')));
+                                if ($piecesPerPack > 1):
+                                    $boxes = (int) floor((float) $product['stock'] / $piecesPerPack);
+                                    $loose = (int) fmod((float) $product['stock'], $piecesPerPack);
+                                    $boxPlural = (strtolower(substr($packUnit, -1)) === 'x' || strtolower(substr($packUnit, -2)) === 'ch' || strtolower(substr($packUnit, -2)) === 'sh') ? ($packUnit . 'es') : ($packUnit . 's');
+                                ?>
+                                    <div style="display:flex; flex-direction:column; gap:3px;">
+                                        <span class="badge <?php echo $low ? 'badge-danger' : 'badge-success'; ?>" style="font-weight:800; letter-spacing:0.2px;">
+                                            📦 <?php echo $boxes; ?> <?php echo Security::escape($boxes === 1 ? $packUnit : $boxPlural); ?> + <?php echo $loose; ?> Loose
+                                        </span>
+                                        <span style="font-size:11px; color:#64748b; font-weight:700;">
+                                            Total: <?php echo Security::escape(App::formatQuantity($product['stock'])); ?> <?php echo Security::escape($baseUnit); ?> (<?php echo $piecesPerPack; ?>/<?php echo Security::escape($packUnit); ?>)
+                                        </span>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="badge <?php echo $low ? 'badge-danger' : 'badge-success'; ?>"><?php echo Security::escape(App::formatQuantity($product['stock'])); ?> <?php echo Security::escape($baseUnit); ?></span>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <div class="table-actions">
                                     <a class="icon-btn" href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/inventory/barcodePrint/<?php echo $product['id']; ?>" title="Print Barcode Labels" style="color: #1d4ed8;"><span class="material-symbols-rounded">print</span></a>

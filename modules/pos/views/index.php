@@ -2166,7 +2166,11 @@ $categoriesList = $categories ?? [];
                 data-wholesale-price="<?php echo (float) ($p['wholesale_price'] ?? $p['price']); ?>"
                 data-cost-price="<?php echo (float) ($p['cost'] ?? 0); ?>"
                 data-min-stock="<?php echo (float) ($p['min_stock'] ?? 5); ?>"
-                data-stock="<?php echo (float) $p['stock']; ?>">
+                data-stock="<?php echo (float) $p['stock']; ?>"
+                data-pack-unit="<?php echo Security::escape($p['pack_unit'] ?? 'Box'); ?>"
+                data-pieces-per-pack="<?php echo max(1, (int) ($p['pieces_per_pack'] ?? 1)); ?>"
+                data-pack-price="<?php echo !empty($p['pack_price']) ? (float) $p['pack_price'] : ((float) $p['price'] * max(1, (int) ($p['pieces_per_pack'] ?? 1))); ?>"
+                data-pack-barcode="<?php echo Security::escape($p['pack_barcode'] ?? ''); ?>">
                 <div class="product-card-main">
                     <?php if ($showProductImages): ?>
                         <?php $productImage = $resolveProductImage($p); ?>
@@ -2188,9 +2192,21 @@ $categoriesList = $categories ?? [];
                                 $cardMinStock = (float) ($p['min_stock'] ?? 5);
                                 $cardUnit = strtoupper(trim((string) ($p['unit_type'] ?? 'PCS')));
                                 $cardStockFormatted = App::formatQuantity($cardStock);
+                                $cardPiecesPerPack = max(1, (int) ($p['pieces_per_pack'] ?? 1));
+                                $cardPackUnit = trim((string) ($p['pack_unit'] ?? 'Box')) ?: 'Box';
                             ?>
                             <span class="stock-mini <?php echo $cardStock <= 0 ? 'out' : ($cardStock <= $cardMinStock ? 'low' : ''); ?>">
-                                Stock: <?php echo $cardStock <= 0 ? 'Out' : (Security::escape($cardStockFormatted) . ($cardUnit !== '' ? ' ' . Security::escape($cardUnit) : '')); ?>
+                                <?php if ($cardStock <= 0): ?>
+                                    Stock: Out
+                                <?php elseif ($cardPiecesPerPack > 1): ?>
+                                    <?php
+                                        $cardBoxes = (int) floor($cardStock / $cardPiecesPerPack);
+                                        $cardLoose = (int) fmod($cardStock, $cardPiecesPerPack);
+                                    ?>
+                                    Stock: <?php echo $cardBoxes; ?> <?php echo Security::escape($cardPackUnit); ?> + <?php echo $cardLoose; ?> Pcs
+                                <?php else: ?>
+                                    Stock: <?php echo Security::escape($cardStockFormatted) . ($cardUnit !== '' ? ' ' . Security::escape($cardUnit) : ''); ?>
+                                <?php endif; ?>
                             </span>
                         <?php endif; ?>
 
@@ -3423,8 +3439,23 @@ $categoriesList = $categories ?? [];
                                         <span style="display:inline-block; font-size:9px; font-weight:900; background:#fef3c7; color:#b45309; border:1px solid #fde68a; padding:1px 5px; border-radius:4px; margin-right:3px; letter-spacing:0.3px;">RETURN</span>
                                     ` : ''}
                                     <strong style="color:${isReturn ? '#b45309' : '#0f172a'}; font-size:12px;">${escapeHtml(item.name)}</strong>
-                                    <div style="font-size:10.5px; color:#64748b; font-weight:700; margin-top:1px;">
-                                        Unit: ${escapeHtml(item.unit_label || item.unit_type || 'pcs')}
+                                    ${item.sale_unit === 'pack' ? `
+                                        <span style="display:inline-block; font-size:9.5px; font-weight:850; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; padding:1px 5px; border-radius:4px; margin-left:4px;">
+                                            📦 ${escapeHtml(item.pack_unit || 'Box')} of ${item.pieces_per_pack || item.pack_multiplier}
+                                        </span>
+                                    ` : ''}
+                                    <div style="font-size:10.5px; color:#64748b; font-weight:700; margin-top:2px; display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                                        <span>Unit: ${escapeHtml(item.sale_unit === 'pack' ? (item.pack_unit || 'Box') : (item.unit_label || item.unit_type || 'pcs'))}</span>
+                                        ${(item.pieces_per_pack && item.pieces_per_pack > 1) ? `
+                                            <div style="display:inline-flex; align-items:center; background:#f1f5f9; border-radius:5px; padding:1px; gap:1px; border:1px solid #cbd5e1; margin-left:2px;">
+                                                <button type="button" onclick="window.switchCartItemUnit(${index}, 'piece')" title="Sell single loose piece(s)" style="border:none; background:${item.sale_unit !== 'pack' ? '#ffffff' : 'transparent'}; color:${item.sale_unit !== 'pack' ? '#0f172a' : '#64748b'}; font-size:9.5px; font-weight:800; border-radius:3px; padding:1px 5px; cursor:pointer; box-shadow:${item.sale_unit !== 'pack' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'};">
+                                                    🔘 Piece
+                                                </button>
+                                                <button type="button" onclick="window.switchCartItemUnit(${index}, 'pack')" title="Sell full sealed ${escapeHtml(item.pack_unit || 'Box')}" style="border:none; background:${item.sale_unit === 'pack' ? '#0f6dff' : 'transparent'}; color:${item.sale_unit === 'pack' ? '#ffffff' : '#64748b'}; font-size:9.5px; font-weight:800; border-radius:3px; padding:1px 5px; cursor:pointer; box-shadow:${item.sale_unit === 'pack' ? '0 1px 2px rgba(15,109,255,0.3)' : 'none'};">
+                                                    📦 ${escapeHtml(item.pack_unit || 'Box')} (${item.pieces_per_pack})
+                                                </button>
+                                            </div>
+                                        ` : ''}
                                         ${isWeighted ? `
                                             <button type="button" onclick="openPosWeightModal(${index})" title="Calculate Weight & Price" style="border:1px solid #bae6fd; background:#f0f9ff; color:#0284c7; font-size:10px; font-weight:800; border-radius:4px; padding:1px 5px; display:inline-flex; align-items:center; gap:2px; cursor:pointer; margin-left:3px;">
                                                 <span class="material-symbols-rounded" style="font-size:12px;">scale</span> Weight
@@ -3983,12 +4014,20 @@ $categoriesList = $categories ?? [];
         }
         const retailPrice = roundMoney(product.retail_price ?? product.price ?? 0);
         const wholesalePrice = roundMoney(product.wholesale_price ?? product.price ?? retailPrice);
-        const selectedPrice = currentSaleChannel === 'wholesale' ? wholesalePrice : retailPrice;
-        const existing = cart.find((item) => item.id === product.id && item.model_number === product.model_number);
+        const piecesPerPack = Math.max(1, Number(product.pieces_per_pack || 1));
+        const packUnit = product.pack_unit || 'Box';
+        const packPrice = roundMoney(Number(product.pack_price || 0) || (retailPrice * piecesPerPack));
+        const saleUnit = product.sale_unit || 'piece';
+        const isPack = saleUnit === 'pack';
+        const selectedPrice = isPack ? packPrice : (currentSaleChannel === 'wholesale' ? wholesalePrice : retailPrice);
+        const multiplier = isPack ? piecesPerPack : 1;
+
+        const existing = cart.find((item) => item.id === product.id && item.model_number === product.model_number && (item.sale_unit || 'piece') === saleUnit);
         const currentQty = existing ? existing.quantity : 0;
 
         if (product.id && currentTransactionType !== 'Return' && currentTransactionType !== 'Refund') {
             const stockLimit = Number(product.max_stock ?? product.stock ?? 0);
+            const requiredBasePieces = (currentQty + addQty) * multiplier;
             if (stockLimit <= 0) {
                 if (typeof playScannerBeep === 'function') {
                     playScannerBeep('error');
@@ -3998,20 +4037,21 @@ $categoriesList = $categories ?? [];
                 window.appToast?.(`"${product.name || 'Item'}" is Out of Stock! (Stock: 0)`, 'error');
                 return false;
             }
-            if (currentQty + addQty > stockLimit) {
+            if (requiredBasePieces > stockLimit) {
                 if (typeof playScannerBeep === 'function') {
                     playScannerBeep('error');
                 } else if (typeof window.playScannerBeep === 'function') {
                     window.playScannerBeep('error');
                 }
-                window.appToast?.(`Only ${stockLimit} unit(s) available in stock for "${product.name || 'Item'}".`, 'error');
+                const availableUnits = isPack ? Math.floor(stockLimit / piecesPerPack) : stockLimit;
+                window.appToast?.(`Only ${availableUnits} ${isPack ? packUnit : 'unit'}(s) available in stock for "${product.name || 'Item'}".`, 'error');
                 return false;
             }
         }
 
         if (existing) {
             existing.quantity = Math.round((existing.quantity + addQty) * 1000) / 1000;
-            existing.scan_type = product.scan_type || existing.scan_type || 'single';
+            existing.scan_type = product.scan_type || existing.scan_type || (isPack ? 'box' : 'single');
             existing.scan_label = product.scan_label || existing.scan_label || '';
             existing.scan_quantity = Math.max(1, Number(product.scan_quantity || addQty || existing.scan_quantity || 1));
             existing.matched_code = product.matched_code || product.barcode || existing.matched_code || '';
@@ -4028,7 +4068,13 @@ $categoriesList = $categories ?? [];
                 quantity: addQty,
                 discount: 0,
                 is_return: currentTransactionType === 'Return' ? 1 : 0,
-                scan_type: product.scan_type || 'single',
+                pack_unit: packUnit,
+                pieces_per_pack: piecesPerPack,
+                pack_price: packPrice,
+                pack_barcode: product.pack_barcode || '',
+                pack_multiplier: multiplier,
+                sale_unit: saleUnit,
+                scan_type: product.scan_type || (isPack ? 'box' : 'single'),
                 scan_label: product.scan_label || '',
                 scan_quantity: Math.max(1, Number(product.scan_quantity || addQty || 1)),
                 matched_code: product.matched_code || product.barcode || ''
@@ -4039,13 +4085,34 @@ $categoriesList = $categories ?? [];
         return true;
     };
 
+    window.switchCartItemUnit = (index, targetUnit) => {
+        const item = cart[index];
+        if (!item || !item.pieces_per_pack || item.pieces_per_pack <= 1) return;
+        const ppp = Number(item.pieces_per_pack);
+        const packPrice = roundMoney(Number(item.pack_price || 0) || (Number(item.retail_price || item.price || 0) * ppp));
+        const piecePrice = roundMoney(currentSaleChannel === 'wholesale' ? (item.wholesale_price || item.retail_price) : (item.retail_price || item.price));
+
+        if (targetUnit === 'pack') {
+            item.sale_unit = 'pack';
+            item.pack_multiplier = ppp;
+            item.price = packPrice;
+        } else {
+            item.sale_unit = 'piece';
+            item.pack_multiplier = 1;
+            item.price = piecePrice;
+        }
+        renderCart();
+    };
+
     window.updateQty = (index, diff) => {
         const item = cart[index];
         const newQty = Math.round((item.quantity + diff) * 1000) / 1000;
+        const itemMultiplier = item.pack_multiplier || 1;
 
         if (newQty > 0 && item.id && !item.is_return && currentTransactionType !== 'Return' && currentTransactionType !== 'Refund') {
-            if (newQty > (item.max_stock || 0)) {
-                window.appToast(`Only ${item.max_stock} unit(s) available in stock.`, 'error');
+            if (newQty * itemMultiplier > (item.max_stock || 0)) {
+                const avail = Math.floor((item.max_stock || 0) / itemMultiplier);
+                window.appToast(`Only ${avail} unit(s) available in stock.`, 'error');
                 return;
             }
         }
@@ -4058,10 +4125,12 @@ $categoriesList = $categories ?? [];
     window.setQty = (index, value) => {
         const qty = parseFloat(value);
         const item = cart[index];
+        const itemMultiplier = item.pack_multiplier || 1;
 
         if (qty > 0 && item.id && !item.is_return && currentTransactionType !== 'Return' && currentTransactionType !== 'Refund') {
-            if (qty > (item.max_stock || 0)) {
-                window.appToast(`Only ${item.max_stock} unit(s) available in stock.`, 'error');
+            if (qty * itemMultiplier > (item.max_stock || 0)) {
+                const avail = Math.floor((item.max_stock || 0) / itemMultiplier);
+                window.appToast(`Only ${avail} unit(s) available in stock.`, 'error');
                 item.quantity = Number(item.max_stock || 0);
                 renderCart();
                 return;
@@ -4448,10 +4517,21 @@ $categoriesList = $categories ?? [];
             </div>
         `;
 
+        const piecesPerPack = Math.max(1, Number(product.pieces_per_pack || 1));
+        const packUnit = escapeHtml(product.pack_unit || 'Box');
+        const packPrice = Number(product.pack_price || 0) || (retailPrice * piecesPerPack);
+        const packBarcode = escapeHtml(product.pack_barcode || '');
+        let packStockLabel = stockLabel;
+        if (stock > 0 && piecesPerPack > 1) {
+            const boxes = Math.floor(stock / piecesPerPack);
+            const loose = Math.round((stock % piecesPerPack) * 1000) / 1000;
+            packStockLabel = `${boxes} ${packUnit} + ${loose} Pcs`;
+        }
+
         const hasInfo = posShowName || posShowStock || posShowUnit;
         const infoHtml = !hasInfo ? '' : `
             <div class="product-card-info" style="min-width:0; flex:1;">
-                ${posShowStock ? `<span class="stock-mini ${stock <= 0 ? 'out' : (stock <= minStock ? 'low' : '')}">Stock: ${stockLabel}</span>` : ''}
+                ${posShowStock ? `<span class="stock-mini ${stock <= 0 ? 'out' : (stock <= minStock ? 'low' : '')}">Stock: ${packStockLabel}</span>` : ''}
                 ${posShowName ? `<h3>${productName}</h3>` : ''}
                 ${posShowUnit ? `<div style="font-size:11.5px; color:#64748b; font-weight:700;">Unit: ${escapeHtml(unitLabel)}</div>` : ''}
             </div>
@@ -4474,7 +4554,11 @@ $categoriesList = $categories ?? [];
                 data-unit-type="${escapeHtml(unitType)}"
                 data-min-stock="${minStock}"
                 data-cost-price="${costPrice}"
-                data-retail-price="${retailPrice}" data-wholesale-price="${wholesalePrice}" data-stock="${stock}">
+                data-retail-price="${retailPrice}" data-wholesale-price="${wholesalePrice}" data-stock="${stock}"
+                data-pack-unit="${packUnit}"
+                data-pieces-per-pack="${piecesPerPack}"
+                data-pack-price="${packPrice}"
+                data-pack-barcode="${packBarcode}">
                 <div class="product-card-main">
                     ${imageHtml}
                     ${infoHtml}
@@ -4642,6 +4726,11 @@ $categoriesList = $categories ?? [];
         productsGrid.addEventListener('click', (event) => {
             const card = event.target.closest('.product-card');
             if (!card) return;
+            const piecesPerPack = Math.max(1, Number(card.dataset.piecesPerPack || 1));
+            const packUnit = card.dataset.packUnit || 'Box';
+            const packPrice = Number(card.dataset.packPrice || 0) || (Number(card.dataset.retailPrice || 0) * piecesPerPack);
+            const packBarcode = card.dataset.packBarcode || '';
+
             addToCart({
                 id: Number(card.dataset.id || 0),
                 name: card.dataset.productName || '',
@@ -4652,7 +4741,13 @@ $categoriesList = $categories ?? [];
                 wholesale_price: Number(card.dataset.wholesalePrice || 0),
                 cost_price: Number(card.dataset.costPrice || 0),
                 price: Number(card.dataset.retailPrice || 0),
-                max_stock: Number(card.dataset.stock || 0)
+                max_stock: Number(card.dataset.stock || 0),
+                pack_unit: packUnit,
+                pieces_per_pack: piecesPerPack,
+                pack_price: packPrice,
+                pack_barcode: packBarcode,
+                pack_multiplier: 1,
+                sale_unit: 'piece'
             });
         });
     }
@@ -4730,14 +4825,25 @@ $categoriesList = $categories ?? [];
                 const currentStock = Number(card.dataset.stock || 0);
                 const minStock = Number(card.dataset.minStock || 5);
                 const unitType = String(card.dataset.unitType || 'PCS').trim().toUpperCase() || 'PCS';
-                const qtyDelta = parseFloat(item.quantity) || 0;
+                const multiplier = Math.max(1, Number(item.pack_multiplier || 1));
+                const qtyDelta = (parseFloat(item.quantity) || 0) * multiplier;
                 const newStock = isItemReturn ? Math.round((currentStock + qtyDelta) * 1000) / 1000 : Math.max(0, Math.round((currentStock - qtyDelta) * 1000) / 1000);
 
                 card.dataset.stock = newStock;
                 const badge = card.querySelector('.stock-mini');
                 if (badge) {
-                    const formatted = Number.isInteger(newStock) ? String(newStock) : String(newStock).replace(/0+$/, '').replace(/\.$/, '');
-                    badge.textContent = newStock <= 0 ? 'Stock: Out' : `Stock: ${formatted} ${unitType}`;
+                    const piecesPerPack = Math.max(1, Number(card.dataset.piecesPerPack || 1));
+                    const packUnit = card.dataset.packUnit || 'Box';
+                    if (newStock <= 0) {
+                        badge.textContent = 'Stock: Out';
+                    } else if (piecesPerPack > 1) {
+                        const boxes = Math.floor(newStock / piecesPerPack);
+                        const loose = Math.round((newStock % piecesPerPack) * 1000) / 1000;
+                        badge.textContent = `Stock: ${boxes} ${packUnit} + ${loose} Pcs`;
+                    } else {
+                        const formatted = Number.isInteger(newStock) ? String(newStock) : String(newStock).replace(/0+$/, '').replace(/\.$/, '');
+                        badge.textContent = `Stock: ${formatted} ${unitType}`;
+                    }
                     badge.className = `stock-mini ${newStock <= 0 ? 'out' : (newStock <= minStock ? 'low' : '')}`;
                 }
             }
