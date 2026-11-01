@@ -305,7 +305,7 @@ $receiptOrder = App::receiptSectionOrder();
                 max-width: calc(var(--print-width-mm) * 1mm) !important;
                 height: auto !important;
                 min-height: 0 !important;
-                padding: 1.5mm 1mm 2mm 1mm !important;
+                padding: 2px 1mm 2mm 1mm !important;
                 overflow: visible !important;
                 page-break-after: avoid !important;
                 break-after: avoid !important;
@@ -500,10 +500,6 @@ $receiptOrder = App::receiptSectionOrder();
         body.receipt-template-thermal_mono .retail-table-grid th, body.receipt-template-thermal_mono .retail-table-grid td { border: 1px dashed #000; }
         body.receipt-template-thermal_mono .retail-net-payable-box { border: 1px dashed #000; }
 
-        @page {
-            size: auto;
-            margin: 0mm !important;
-        }
         @media print {
             * {
                 -webkit-print-color-adjust: exact !important;
@@ -535,7 +531,7 @@ $receiptOrder = App::receiptSectionOrder();
                 max-width: calc(var(--print-width-mm) * 1mm) !important;
                 border: none !important;
                 box-shadow: none !important;
-                padding: 0.5mm 1mm 2mm 1mm !important;
+                padding: 2px 1mm 2mm 1mm !important;
                 border-radius: 0 !important;
                 height: auto !important;
                 min-height: 0 !important;
@@ -549,38 +545,32 @@ $receiptOrder = App::receiptSectionOrder();
             .retail-header-box {
                 margin-top: 0 !important;
                 padding-top: 0 !important;
-                margin-bottom: 3px !important;
+                margin-bottom: 2px !important;
             }
             .retail-header-box > *:first-child {
                 margin-top: 0 !important;
                 padding-top: 0 !important;
             }
             .retail-no-logo-placeholder {
-                display: inline-flex !important;
-                flex-direction: column !important;
-                align-items: center !important;
-                justify-content: center !important;
-                width: 82px !important;
-                height: 25px !important;
-                border: 1px dashed #000000 !important;
-                background: transparent !important;
-                color: #000000 !important;
-                font-size: 7.5px !important;
-                font-weight: 700 !important;
-                line-height: 1.15 !important;
-                text-align: center !important;
-                margin: 0 auto 3px !important;
-                border-radius: 2px !important;
+                display: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                height: 0 !important;
+                overflow: hidden !important;
             }
             .retail-logo-img {
                 max-width: 110px !important;
                 max-height: 38px !important;
                 display: block !important;
-                margin: 0 auto 3px !important;
+                margin: 0 auto 2px !important;
+                padding-top: 0 !important;
                 filter: grayscale(100%) contrast(120%) !important;
             }
             /* Universal clean contrast text for thermal heads - prevent ink bleeding */
             .retail-store-title {
+                margin-top: 0 !important;
+                padding-top: 0 !important;
+                line-height: 1.15 !important;
                 color: #000000 !important;
                 font-weight: 800 !important;
             }
@@ -701,7 +691,6 @@ $receiptOrder = App::receiptSectionOrder();
             .actions, .no-print {
                 display: none !important;
             }
-        }
         }
     </style>
 </head>
@@ -1119,7 +1108,7 @@ $receiptOrder = App::receiptSectionOrder();
                 const contentWidthMm = is58mm ? 48 : 72;
                 const pageHeightMm = Math.max(35, exactHeightMm + 2);
 
-                styleTag.textContent = `@page { size: ${paperWidthMm}mm ${pageHeightMm}mm; margin: 0; } @media print { *{box-sizing:border-box!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;} html,body{width:100%!important;margin:0!important;padding:0!important;background:#fff!important;display:block!important;} .sheet{width:${contentWidthMm}mm!important;max-width:${contentWidthMm}mm!important;min-width:0!important;margin:0 auto!important;padding:0.5mm 1mm 2mm 1mm!important;height:auto!important;min-height:0!important;box-shadow:none!important;border:none!important;border-radius:0!important;page-break-after:avoid!important;break-after:avoid!important;page-break-inside:avoid!important;break-inside:avoid!important;overflow:visible!important;} .retail-header-box{margin-top:0!important;padding-top:0!important;margin-bottom:3px!important;} .retail-header-box>*:first-child{margin-top:0!important;} .actions,.no-print{display:none!important;} }`;
+                styleTag.textContent = `@page { size: ${paperWidthMm}mm ${pageHeightMm}mm; margin: 0; } @media print { *{box-sizing:border-box!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;} html,body{width:100%!important;margin:0!important;padding:0!important;background:#fff!important;display:block!important;} .sheet{width:${contentWidthMm}mm!important;max-width:${contentWidthMm}mm!important;min-width:0!important;margin:0 auto!important;padding:2px 1mm 2mm 1mm!important;height:auto!important;min-height:0!important;box-shadow:none!important;border:none!important;border-radius:0!important;page-break-after:avoid!important;break-after:avoid!important;page-break-inside:avoid!important;break-inside:avoid!important;overflow:visible!important;} .retail-header-box{margin-top:0!important;padding-top:0!important;margin-bottom:2px!important;} .retail-header-box>*:first-child{margin-top:0!important;padding-top:0!important;} .retail-store-title{margin-top:0!important;padding-top:0!important;line-height:1.15!important;} .retail-no-logo-placeholder{display:none!important;} .actions,.no-print{display:none!important;} }`;
             }
         };
 
