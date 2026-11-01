@@ -53,8 +53,7 @@ class Controller {
     protected function jsonResponse($data, $statusCode = 200) {
         // --- API HARDENING: Block direct browser access to prevent data scraping ---
         if (!$this->isAjaxRequest() && php_sapi_name() !== 'cli') {
-            http_response_code(403);
-            die("<strong>403 Forbidden</strong><br><br>Direct API access is restricted. This incident will be logged.");
+            App::renderErrorPage(403, 'Direct API Access Restricted (403)', 'Direct browser access to raw system endpoints is restricted. Click below to safely return to your previous page or open the POS Terminal.');
         }
 
         http_response_code($statusCode);

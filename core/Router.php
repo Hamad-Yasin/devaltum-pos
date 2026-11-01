@@ -86,9 +86,13 @@ class Router {
         } else {
             // 2. Application is NOT INSTALLED yet (Initial fresh install setup)
             if (!is_dir(ROOT_PATH . '/installer')) {
-                http_response_code(404);
-                echo "<h1>404 Not Found</h1><p>Please contact the development team.</p>";
-                exit;
+                if (class_exists('App') && method_exists('App', 'renderErrorPage')) {
+                    App::renderErrorPage(404, 'Installation Directory Missing', 'The installer directory was not found. Please contact support.');
+                } else {
+                    http_response_code(404);
+                    echo "<h1>404 Not Found</h1>";
+                    exit;
+                }
             }
             if ($controllerName !== 'InstallerController') {
                 $baseUrl = defined('BASE_URL') ? BASE_URL : '';
@@ -168,8 +172,12 @@ class Router {
     }
 
     protected function sendNotFound() {
-        header("HTTP/1.0 404 Not Found");
-        echo "404 Not Found";
-        exit;
+        if (class_exists('App') && method_exists('App', 'renderErrorPage')) {
+            App::renderErrorPage(404, 'Page Not Found (404)', 'The page or action you requested does not exist or may have been moved. Click below to return to your previous page or open the POS Terminal.');
+        } else {
+            header("HTTP/1.0 404 Not Found");
+            echo "404 Not Found";
+            exit;
+        }
     }
 }

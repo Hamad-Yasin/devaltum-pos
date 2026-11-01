@@ -2600,4 +2600,280 @@ class App {
         }
         fclose($fp);
     }
+
+    /**
+     * Render a custom, enterprise error page with Go Back navigation
+     */
+    public static function renderErrorPage($statusCode = 404, $title = '', $message = '', $details = null) {
+        $statusCode = (int) $statusCode;
+        if ($statusCode < 100 || $statusCode > 599) {
+            $statusCode = 500;
+        }
+
+        while (ob_get_level() > 0) {
+            @ob_end_clean();
+        }
+
+        http_response_code($statusCode);
+
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+               || (isset($_SERVER['HTTP_ACCEPT']) && str_contains(strtolower($_SERVER['HTTP_ACCEPT']), 'application/json'));
+
+        if ($isAjax) {
+            header('Content-Type: application/json; charset=UTF-8');
+            echo json_encode([
+                'success' => false,
+                'status' => $statusCode,
+                'error' => $title ?: ($statusCode === 403 ? 'Forbidden' : ($statusCode === 404 ? 'Not Found' : 'Internal Error')),
+                'message' => $message ?: 'An error occurred while processing your request.',
+                'details' => $details
+            ]);
+            exit;
+        }
+
+        header('Content-Type: text/html; charset=UTF-8');
+        $baseUrl = defined('BASE_URL') ? BASE_URL : '';
+
+        if ($statusCode === 403) {
+            $iconSymbol = 'shield_lock';
+            $themeColor = '#dc2626';
+            $themeBg = '#fef2f2';
+            $themeBorder = '#fecaca';
+            $defaultTitle = 'Access Restricted';
+            $defaultMsg = 'You do not have administrative permission to view or modify this section. Don\'t worry, your active sale session and cart are completely safe.';
+        } elseif ($statusCode === 404) {
+            $iconSymbol = 'travel_explore';
+            $themeColor = '#2563eb';
+            $themeBg = '#eff6ff';
+            $themeBorder = '#bfdbfe';
+            $defaultTitle = 'Page Not Found';
+            $defaultMsg = 'The page, action, or document you requested does not exist or has been moved. You can easily return to what you were doing.';
+        } else {
+            $iconSymbol = 'warning';
+            $themeColor = '#d97706';
+            $themeBg = '#fffbeb';
+            $themeBorder = '#fde68a';
+            $defaultTitle = 'System Notice';
+            $defaultMsg = 'A temporary notice occurred while processing this request. You can safely return to your previous page without losing your work.';
+        }
+
+        $heading = $title ?: $defaultTitle;
+        $description = $message ?: $defaultMsg;
+        $appName = defined('APP_NAME') ? APP_NAME : 'DevAltum POS';
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= htmlspecialchars($heading) ?> &bull; <?= htmlspecialchars($appName) ?></title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 50%, #f1f5f9 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            color: #0f172a;
+        }
+        .error-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.04);
+            max-width: 520px;
+            width: 100%;
+            padding: 40px 32px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            animation: errorFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes errorFadeIn {
+            from { opacity: 0; transform: translateY(14px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .error-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 5px;
+            background: <?= $themeColor ?>;
+        }
+        .error-icon-box {
+            width: 80px;
+            height: 80px;
+            border-radius: 22px;
+            background: <?= $themeBg ?>;
+            border: 1.5px solid <?= $themeBorder ?>;
+            color: <?= $themeColor ?>;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 18px -4px rgba(0, 0, 0, 0.06);
+        }
+        .error-icon-box .material-symbols-rounded {
+            font-size: 42px;
+        }
+        .error-badge {
+            display: inline-block;
+            font-size: 11.5px;
+            font-weight: 850;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 3px 12px;
+            border-radius: 999px;
+            background: <?= $themeBg ?>;
+            color: <?= $themeColor ?>;
+            border: 1px solid <?= $themeBorder ?>;
+            margin-bottom: 14px;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 900;
+            color: #0f172a;
+            margin-bottom: 12px;
+            line-height: 1.25;
+            letter-spacing: -0.3px;
+        }
+        p {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.6;
+            margin-bottom: 28px;
+            font-weight: 500;
+        }
+        .actions-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 13.5px;
+            font-weight: 800;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: none;
+            outline: none;
+            flex: 1;
+            min-width: 140px;
+        }
+        .btn-primary {
+            background: #0f6dff;
+            color: #ffffff;
+            box-shadow: 0 4px 14px -2px rgba(15, 109, 255, 0.35);
+        }
+        .btn-primary:hover {
+            background: #0058e6;
+            transform: translateY(-1px);
+        }
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+        .btn-secondary:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+            transform: translateY(-1px);
+        }
+        .btn-link {
+            background: transparent;
+            color: #64748b;
+            font-size: 12.5px;
+            font-weight: 700;
+            padding: 8px;
+        }
+        .btn-link:hover {
+            color: #0f172a;
+        }
+        .app-badge-footer {
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 1px dashed #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 11.5px;
+            color: #94a3b8;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-card">
+        <div class="error-icon-box">
+            <span class="material-symbols-rounded"><?= $iconSymbol ?></span>
+        </div>
+        <div class="error-badge">Status <?= $statusCode ?></div>
+        <h1><?= htmlspecialchars($heading) ?></h1>
+        <p><?= htmlspecialchars($description) ?></p>
+
+        <div class="actions-wrap">
+            <div class="btn-group">
+                <button type="button" class="btn btn-secondary" onclick="goBackOrHome()" id="btn-go-back">
+                    <span class="material-symbols-rounded" style="font-size:18px;">arrow_back</span>
+                    <span>Go Back (Previous Page)</span>
+                </button>
+                <a href="<?= htmlspecialchars($baseUrl) ?>/pos" class="btn btn-primary">
+                    <span class="material-symbols-rounded" style="font-size:18px;">point_of_sale</span>
+                    <span>Open POS Terminal</span>
+                </a>
+            </div>
+            <div class="btn-group">
+                <a href="<?= htmlspecialchars($baseUrl) ?>/dashboard" class="btn btn-link">
+                    <span class="material-symbols-rounded" style="font-size:16px;">dashboard</span>
+                    <span>Go to Dashboard</span>
+                </a>
+                <button type="button" class="btn btn-link" onclick="window.location.reload()">
+                    <span class="material-symbols-rounded" style="font-size:16px;">refresh</span>
+                    <span>Reload Page</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="app-badge-footer">
+            <span>DevAltum POS Enterprise</span>
+            <span>Version 1.1.8 Verified</span>
+        </div>
+    </div>
+
+    <script>
+        function goBackOrHome() {
+            if (window.history && window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = <?= json_encode($baseUrl . '/pos') ?>;
+            }
+        }
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                goBackOrHome();
+            }
+        });
+    </script>
+</body>
+</html>
+<?php
+        exit;
+    }
 }

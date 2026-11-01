@@ -37,9 +37,7 @@ class AuthMiddleware {
                 header('Location: ' . $baseUrl . '/' . $landing);
                 exit;
             }
-            header('HTTP/1.0 403 Forbidden');
-            echo "403 Forbidden - Admin Access Required";
-            exit;
+            App::renderErrorPage(403, 'Admin Access Required (403)', 'This section requires administrator privileges. Don\'t worry, your active sale session is completely safe. Click below to return to your previous page or open POS.');
         }
     }
 
@@ -65,9 +63,7 @@ class AuthMiddleware {
                 header('Location: ' . $baseUrl . '/' . $landing);
                 exit;
             }
-            header('HTTP/1.0 403 Forbidden');
-            echo "403 Forbidden - You do not have access to this section.";
-            exit;
+            App::renderErrorPage(403, 'Access Restricted (403)', 'Your account does not currently have permission to access this section. Don\'t worry, your active work is completely safe. Click below to return to your previous page or open POS.');
         }
     }
 }

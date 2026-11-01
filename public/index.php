@@ -166,5 +166,16 @@ if (file_exists(CONFIG_PATH . '/database.php')) {
 
 require_once CORE_PATH . '/Router.php';
 
+set_exception_handler(function (\Throwable $e) {
+    error_log('Uncaught Exception: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+    if (class_exists('App') && method_exists('App', 'renderErrorPage')) {
+        App::renderErrorPage(500, 'System Notice (500)', 'A temporary notice occurred while processing this request. Don\'t worry, your work is safe. Click below to return to your previous page or open the POS Terminal.', $e->getMessage());
+    } else {
+        http_response_code(500);
+        echo "<h1>500 System Notice</h1><p>Please return to previous page.</p>";
+        exit;
+    }
+});
+
 $router = new Router();
 $router->dispatch($_SERVER['REQUEST_URI']);
