@@ -2336,7 +2336,7 @@ $categoriesList = $categories ?? [];
                 <!-- Input & Quick Denomination Chips -->
                 <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 7px;">
                     <div style="position: relative; flex: 1; min-width: 0;">
-                        <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 800; color: #64748b;"><?= App::currency() ?></span>
+                        <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 800; color: #64748b;"><?= Security::escape(App::currencySymbol()) ?></span>
                         <input type="number" id="cash-tendered-input" class="form-input" placeholder="0.00" min="0" step="any" oninput="window.calcChangeDue()" style="padding-left: 30px; height: 32px; font-size: 13px; font-weight: 900; text-align: right; color: #0f172a; border-color: #cbd5e1; background: #ffffff;">
                     </div>
                     <div style="display: flex; gap: 3px; flex-shrink: 0;">

@@ -1259,6 +1259,10 @@ class App {
         return self::setting('currency_symbol', 'Rs');
     }
 
+    public static function currency() {
+        return self::currencySymbol();
+    }
+
     public static function currencyCode() {
         return self::setting('currency_code', 'PKR');
     }

@@ -70,6 +70,7 @@ class PosController extends Controller {
                 )
             );
         }
+        $storeId = (int) Tenant::currentStoreId();
         $financialAccounts = $db->fetchAll("SELECT id, account_name, account_type, account_number, is_default FROM financial_accounts WHERE store_id = ? AND status = 'active' ORDER BY is_default DESC, id ASC", [$storeId]);
         $liveBalances = App::getStoreDrawerAndDigitalBalance($storeId);
 
