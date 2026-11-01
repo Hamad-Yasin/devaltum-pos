@@ -791,7 +791,7 @@ $receiptOrder = App::receiptSectionOrder();
                                     <td class="col-price">
                                         <?php echo number_format((float) $item['price'], 2); ?>
                                         <?php if (!empty($receiptVis['show_unit_label'])): ?>
-                                            <span class="retail-sub-unit"><?php echo Security::escape($item['product_unit_label'] ?? 'Sales'); ?></span>
+                                            <span class="retail-sub-unit"><?php echo Security::escape($item['product_unit_label'] ?? App::formatProductUnit(1, 'pcs')); ?></span>
                                         <?php endif; ?>
                                     </td>
                                     <td class="col-qty"><?php echo number_format((float) $item['quantity'], 2); ?></td>

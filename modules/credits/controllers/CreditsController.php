@@ -511,9 +511,10 @@ class CreditsController extends Controller {
             $meta = $productMeta[(int) ($item['product_id'] ?? 0)] ?? [];
             $item['product_image_url'] = $meta['image'] ?? '';
             $unitType = $meta['unit_type'] ?? ($item['unit_type'] ?? 'pcs');
-            $unitValue = $meta['unit_value'] ?? 1;
+            $unitValue = !empty($meta['unit_value']) && (float) $meta['unit_value'] > 0 ? (float) $meta['unit_value'] : 1;
             $qty = (float) ($item['quantity'] ?? 1);
-            $item['product_unit_label'] = App::formatSoldUnit($qty, $unitType, $unitValue);
+            $item['sold_unit_label'] = App::formatSoldUnit($qty, $unitType, $unitValue);
+            $item['product_unit_label'] = App::formatProductUnit($unitValue, $unitType);
         }
         unset($item);
 
