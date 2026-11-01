@@ -1,7 +1,7 @@
 <?php
 date_default_timezone_set('Asia/Karachi');
 
-$sessionLifetime = 60 * 60 * 24 * 180;
+$sessionLifetime = 0; // Session-only cookie: expires when desktop application or browser is closed
 $isHttps = (
     (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
     || (($_SERVER['SERVER_PORT'] ?? null) === '443')
@@ -19,7 +19,7 @@ if (str_ends_with($rawScript, '/public') && !str_contains($reqUriPath, '/public'
 $rawScript = rtrim($rawScript, '/');
 define('BASE_URL', $rawScript);
 
-ini_set('session.gc_maxlifetime', (string) $sessionLifetime);
+ini_set('session.gc_maxlifetime', '86400'); // 24 hours server-side storage while application remains open
 ini_set('session.use_strict_mode', '1');
 ini_set('session.use_only_cookies', '1');
 ini_set('session.cookie_httponly', '1');
@@ -33,7 +33,7 @@ if ($hasTabSession) {
     define('TAB_SESSION_ID', $tabSessionId);
 } else {
     session_set_cookie_params([
-        'lifetime' => $sessionLifetime,
+        'lifetime' => 0, // Expire when application window is closed
         'path' => BASE_URL ?: '/',
         'httponly' => true,
         'secure' => $isHttps,

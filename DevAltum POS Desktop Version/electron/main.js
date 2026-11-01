@@ -79,7 +79,7 @@ function createSplashWindow() {
     });
 }
 
-function createMainWindow(url) {
+async function createMainWindow(url) {
     mainWindow = new BrowserWindow({
         width: 1366,
         height: 768,
@@ -152,6 +152,13 @@ function createMainWindow(url) {
     mainWindow.webContents.on('did-create-window', (childWindow) => {
         childWindow.setMenuBarVisibility(false);
     });
+
+    // Ensure every time application is freshly opened, session cookies are cleared so login is required
+    try {
+        await mainWindow.webContents.session.clearStorageData({ storages: ['cookies'] });
+    } catch (sessionErr) {
+        console.warn('[Session] Cookie clear error:', sessionErr);
+    }
 
     // Auto-wipe stale HTTP/partition caches on startup so new releases load fresh and fast
     mainWindow.webContents.session.clearCache().catch(() => {});
@@ -226,6 +233,11 @@ ipcMain.on('window-close', () => mainWindow?.close());
 
 // Graceful application exit
 app.on('before-quit', async (event) => {
+    try {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            await mainWindow.webContents.session.clearStorageData({ storages: ['cookies'] });
+        }
+    } catch (e) {}
     if (runtimeManager.isRunning) {
         event.preventDefault();
         await runtimeManager.stopAll();
