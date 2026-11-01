@@ -7,7 +7,7 @@
 class BarcodeDocxHelper {
 
     /**
-     * Generate Barcode PNG image data using PHP GD (Supports Code128 and EAN-13)
+     * Generate Barcode PNG image data using PHP GD (Code 128 Universal Standard)
      */
     public static function generateBarcodePng(string $code, int $width = 280, int $height = 80, string $format = 'code128', ?string &$outDisplayCode = null): string {
         $code = trim($code);
@@ -15,17 +15,8 @@ class BarcodeDocxHelper {
             $code = '00000000';
         }
 
-        if (strtolower($format) === 'ean13') {
-            $bars = self::encodeEan13($code, $eanDigits);
-            $outDisplayCode = $eanDigits;
-            if (!$bars) {
-                $bars = self::encodeCode128($code);
-                $outDisplayCode = $code;
-            }
-        } else {
-            $bars = self::encodeCode128($code);
-            $outDisplayCode = $code;
-        }
+        $bars = self::encodeCode128($code);
+        $outDisplayCode = $code;
 
         $totalBars = strlen($bars);
         $imgWidth = max($width, $totalBars * 2);
