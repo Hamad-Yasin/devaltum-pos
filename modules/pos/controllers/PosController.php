@@ -71,7 +71,12 @@ class PosController extends Controller {
             );
         }
         $storeId = (int) Tenant::currentStoreId();
-        $financialAccounts = $db->fetchAll("SELECT id, account_name, account_type, account_number, is_default FROM financial_accounts WHERE store_id = ? AND status = 'active' ORDER BY is_default DESC, id ASC", [$storeId]);
+        $mainOnlineAccount = $db->fetch("SELECT id, account_name, account_number, current_balance FROM financial_accounts WHERE store_id = ? AND account_type != 'cash' AND status = 'active' ORDER BY is_default DESC, id ASC LIMIT 1", [$storeId]);
+        if (!$mainOnlineAccount) {
+            $db->query("INSERT INTO financial_accounts (store_id, account_name, account_type, account_number, bank_name, opening_balance, current_balance, is_default, status) VALUES (?, 'Main Online / Digital Account', 'wallet', 'ONLINE-01', 'JazzCash / EasyPaisa / Bank', 0.00, 0.00, 0, 'active')", [$storeId]);
+            $mainOnlineAccount = $db->fetch("SELECT id, account_name, account_number, current_balance FROM financial_accounts WHERE store_id = ? AND account_type != 'cash' AND status = 'active' ORDER BY is_default DESC, id ASC LIMIT 1", [$storeId]);
+        }
+        $financialAccounts = $mainOnlineAccount ? [$mainOnlineAccount] : [];
         $liveBalances = App::getStoreDrawerAndDigitalBalance($storeId);
 
         $this->view('../../modules/pos/views/index', [
@@ -84,6 +89,7 @@ class PosController extends Controller {
             'totalPages' => $totalPages,
             'totalProducts' => $totalProducts,
             'financialAccounts' => $financialAccounts,
+            'mainOnlineAccount' => $mainOnlineAccount,
             'liveDrawerCash' => (float) ($liveBalances['drawer_cash'] ?? 0),
             'liveDigitalBalance' => (float) ($liveBalances['digital_balance'] ?? 0),
             'taxSettings' => [
@@ -298,6 +304,12 @@ class PosController extends Controller {
             $creditInitialPaymentMethod = $this->sanitizeCreditPaymentMethod($data['credit_initial_payment_method'] ?? 'cash');
             $tenderedAmountRaw = isset($data['tendered_amount']) ? (float) $data['tendered_amount'] : null;
             $paymentAccountId = !empty($data['payment_account_id']) ? (int) $data['payment_account_id'] : null;
+            if ($paymentMethod === 'online' && (!$paymentAccountId || $paymentAccountId <= 0)) {
+                $onlineAccRow = $connection->query("SELECT id FROM financial_accounts WHERE store_id = " . (int)$storeId . " AND account_type != 'cash' AND status = 'active' ORDER BY is_default DESC, id ASC LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+                if ($onlineAccRow) {
+                    $paymentAccountId = (int) $onlineAccRow['id'];
+                }
+            }
             $saleCreatedAt = $this->sanitizeSaleDate($data['sale_date'] ?? '');
             // Temporary value for insert; replaced with formatted invoice id after row creation.
             $customId = 'INV-TMP-' . strtoupper(substr(uniqid('', true), -8));

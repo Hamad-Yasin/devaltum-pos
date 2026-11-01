@@ -905,14 +905,25 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => ($a['status'] ?? 
          ======================================================== -->
     <div id="tab-content-balances" class="cf-tab-panel <?= $activeTab === 'balances' ? 'active' : '' ?>">
         <!-- Accounts Cards Grid -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-            <h3 style="font-size:16px; font-weight:800; color:#0f172a; margin:0;">
-                All Financial Accounts (<?= count($accounts) ?>)
-            </h3>
-            <button type="button" class="btn-solid-dark btn-sm" onclick="window.cfApp.openAddAccountModal()">
-                <span class="material-symbols-rounded" style="font-size:16px;">add</span>
-                Add New Account / Gateway
-            </button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+            <div>
+                <h3 style="font-size:16px; font-weight:800; color:#0f172a; margin:0;">
+                    Store Financial Accounts
+                </h3>
+                <span style="font-size:12px; color:#64748b; font-weight:600;">Counter Till &amp; Main Online Account</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button type="button" class="btn-solid-emerald btn-sm" onclick="window.cfApp.openSetBalanceModal(<?= $defaultCashAcc ? (int)$defaultCashAcc['id'] : 0 ?>, 'Counter Till', <?= (float)($liveCashInHand ?? 0) ?>)">
+                    <span class="material-symbols-rounded" style="font-size:16px;">tune</span>
+                    Reconcile Drawer
+                </button>
+                <?php if (!empty($defaultOnlineAcc)): ?>
+                    <button type="button" class="btn-solid-blue btn-sm" onclick="window.cfApp.openSetBalanceModal(<?= (int)$defaultOnlineAcc['id'] ?>, 'Main Online Account', <?= (float)($totalOnlineBalance ?? 0) ?>)">
+                        <span class="material-symbols-rounded" style="font-size:16px;">tune</span>
+                        Reconcile Online
+                    </button>
+                <?php endif; ?>
+            </div>
         </div>
 
         <div class="accounts-grid">
@@ -979,13 +990,8 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => ($a['status'] ?? 
                         </button>
                         <button type="button" class="btn-solid-blue btn-xs" onclick='window.cfApp.openEditAccountModal(<?= json_encode($acc) ?>)'>
                             <span class="material-symbols-rounded" style="font-size:14px;">edit</span>
-                            Edit
+                            Edit Details
                         </button>
-                        <?php if (!$isCash): ?>
-                            <button type="button" class="btn-solid-rose btn-xs" onclick="window.cfApp.confirmDeactivateAccount(<?= (int)$acc['id'] ?>, '<?= Security::escape($acc['account_name']) ?>')" title="Deactivate">
-                                <span class="material-symbols-rounded" style="font-size:14px;">block</span>
-                            </button>
-                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -1286,55 +1292,18 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => ($a['status'] ?? 
                             </select>
                         </div>
 
-                        <!-- 2. Searchable Digital Gateway Combobox -->
+                        <!-- 2. Digital Account & Channel Ref -->
                         <div class="cf-field-group">
-                            <label class="cf-field-label">Digital Gateway / Bank *</label>
-                            <div class="cf-gw-combobox" id="cf_gw_combobox">
-                                <div class="cf-gw-trigger" id="cf_gw_trigger" onclick="window.cfApp.toggleGwDropdown()">
-                                    <div class="cf-gw-selected">
-                                        <span class="material-symbols-rounded">account_balance_wallet</span>
-                                        <span id="cf_gw_label">JazzCash</span>
-                                    </div>
-                                    <span class="material-symbols-rounded" style="color:#64748b; font-size:18px;">expand_more</span>
+                            <label class="cf-field-label">Digital Account</label>
+                            <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:8px; padding:7px 10px; display:flex; justify-content:space-between; align-items:center;">
+                                <div style="display:flex; align-items:center; gap:6px; font-weight:800; color:#0f172a; font-size:11.5px;">
+                                    <span class="material-symbols-rounded" style="color:#2563eb; font-size:16px;">account_balance_wallet</span>
+                                    <span><?= Security::escape($defaultOnlineAcc['account_name'] ?? 'Main Online / Digital Account') ?></span>
                                 </div>
-
-                                <input type="hidden" name="channel" id="cf_input_channel" value="JazzCash" required>
-                                <input type="hidden" name="online_account_id" id="cf_input_account_id" value="">
-
-                                <div class="cf-gw-dropdown" id="cf_gw_dropdown">
-                                    <div class="cf-gw-search-box">
-                                        <span class="material-symbols-rounded cf-gw-search-icon">search</span>
-                                        <input type="text" id="cf_gw_search" class="cf-gw-search-input" placeholder="Search or type new gateway..." oninput="window.cfApp.filterGateways(this.value)" onkeydown="window.cfApp.onGwSearchKey(event)">
-                                    </div>
-
-                                    <div class="cf-gw-list" id="cf_gw_list">
-                                        <?php 
-                                        $firstGwSelected = false;
-                                        foreach ($gateways as $gw): 
-                                        ?>
-                                            <div class="cf-gw-item <?= !$firstGwSelected ? 'selected' : '' ?>" 
-                                                 data-id="<?= (int)$gw['id'] ?>" 
-                                                 data-name="<?= Security::escape($gw['account_name']) ?>" 
-                                                 onclick="window.cfApp.selectGateway(<?= (int)$gw['id'] ?>, '<?= Security::escape($gw['account_name']) ?>')">
-                                                <div class="cf-gw-item-left">
-                                                    <span class="material-symbols-rounded">account_balance_wallet</span>
-                                                    <span class="cf-gw-item-name"><?= Security::escape($gw['account_name']) ?></span>
-                                                </div>
-                                                <button type="button" class="cf-gw-del-btn" onclick="window.cfApp.deleteGateway(event, <?= (int)$gw['id'] ?>, '<?= Security::escape($gw['account_name']) ?>')" title="Remove this gateway">
-                                                    <span class="material-symbols-rounded">delete</span>
-                                                </button>
-                                            </div>
-                                        <?php 
-                                            $firstGwSelected = true;
-                                        endforeach; 
-                                        ?>
-                                    </div>
-
-                                    <div class="cf-gw-add-prompt" id="cf_gw_add_prompt" style="display:none;" onclick="window.cfApp.addNewGateway()">
-                                        <span id="cf_gw_add_text">+ Add New Gateway</span>
-                                    </div>
-                                </div>
+                                <span class="acc-badge badge-wallet" style="margin:0; font-size:9.5px;">MAIN</span>
                             </div>
+                            <input type="hidden" name="online_account_id" id="cf_input_account_id" value="<?= (int)($defaultOnlineAcc['id'] ?? 0) ?>">
+                            <input type="hidden" name="channel" id="cf_input_channel" value="Online">
                         </div>
 
                         <!-- 3. Exchange Amount -->
@@ -1598,73 +1567,6 @@ $activeAccountsCount = count(array_filter($accounts, fn($a) => ($a['status'] ?? 
                 <button type="submit" class="btn-solid-emerald btn-md">
                     <span class="material-symbols-rounded">check</span>
                     Save Adjustment
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- ========================================================
-     MODAL 2: ADD NEW FINANCIAL ACCOUNT
-     ======================================================== -->
-<div class="cf-modal-backdrop" id="modal-add-account">
-    <div class="cf-modal-box">
-        <div class="cf-modal-head">
-            <div>
-                <h3>Add New Financial Account</h3>
-                <p>Register a new bank account, digital wallet, or counter cash drawer till.</p>
-            </div>
-            <button type="button" class="cf-modal-close-btn" onclick="window.cfApp.closeAddAccountModal()">
-                <span class="material-symbols-rounded">close</span>
-            </button>
-        </div>
-
-        <form action="<?= defined('BASE_URL') ? BASE_URL : '' ?>/cashflow/createAccount" method="POST">
-            <?= Security::csrfField() ?>
-            <div style="display:flex; flex-direction:column; gap:14px;">
-                <div class="cf-field-group">
-                    <label class="cf-field-label">Account Name / Title *</label>
-                    <input type="text" name="account_name" class="cf-input" placeholder="e.g. Meezan Bank Current, EasyPaisa Main Shop" required>
-                </div>
-
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                    <div class="cf-field-group">
-                        <label class="cf-field-label">Account Type *</label>
-                        <select name="account_type" class="cf-select" required>
-                            <option value="bank">Bank Account</option>
-                            <option value="wallet" selected>Digital Wallet</option>
-                            <option value="cash">Cash Till / Drawer</option>
-                            <option value="other">Other Instrument</option>
-                        </select>
-                    </div>
-
-                    <div class="cf-field-group">
-                        <label class="cf-field-label">Bank / Institution Name</label>
-                        <input type="text" name="bank_name" class="cf-input" placeholder="e.g. Meezan Bank, JazzCash">
-                    </div>
-                </div>
-
-                <div class="cf-field-group">
-                    <label class="cf-field-label">Account Number / IBAN Number *</label>
-                    <input type="text" name="account_number" class="cf-input" placeholder="e.g. PK36MEZN00012345678901 / 03001234567" required>
-                </div>
-
-                <div class="cf-field-group">
-                    <label class="cf-field-label">Opening Base Balance (<?= $currency ?>)</label>
-                    <input type="number" step="0.01" min="0" name="opening_balance" value="0.00" class="cf-input" style="font-weight:700;">
-                </div>
-
-                <div class="cf-field-group">
-                    <label class="cf-field-label">Notes (Optional)</label>
-                    <textarea name="notes" class="cf-textarea" placeholder="Branch code, manager details, or purpose..."></textarea>
-                </div>
-            </div>
-
-            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px; padding-top:14px; border-top:1px solid #f1f5f9;">
-                <button type="button" class="btn-solid-gray btn-md" onclick="window.cfApp.closeAddAccountModal()">Cancel</button>
-                <button type="submit" class="btn-solid-dark btn-md">
-                    <span class="material-symbols-rounded">add_circle</span>
-                    Create Account
                 </button>
             </div>
         </form>

@@ -11,37 +11,31 @@ class CashflowController extends Controller {
         $storeId = Tenant::currentStoreId();
         [$whereStore, $whereStoreParams] = Tenant::storeFilter();
 
-        // 1. Ensure accounts exist for this store
-        $accounts = $db->fetchAll("SELECT * FROM financial_accounts WHERE store_id = ? AND status = 'active' ORDER BY is_default DESC, id ASC", [$storeId]);
-        if (empty($accounts)) {
+        // 1. Ensure exactly the TWO primary financial accounts exist:
+        //    a) Cash in Hand (Counter Drawer)
+        //    b) Main Online / Digital Account
+        $cashAcc = $db->fetch("SELECT * FROM financial_accounts WHERE store_id = ? AND (is_default = 1 OR account_type = 'cash') LIMIT 1", [$storeId]);
+        if (!$cashAcc) {
             $db->query("INSERT INTO financial_accounts (store_id, account_name, account_type, account_number, bank_name, opening_balance, current_balance, is_default, status) VALUES (?, 'Cash in Hand (Counter Drawer)', 'cash', 'DRAWER-01', 'Cash Till', 0.00, 0.00, 1, 'active')", [$storeId]);
-            $db->query("INSERT INTO financial_accounts (store_id, account_name, account_type, account_number, bank_name, opening_balance, current_balance, is_default, status) VALUES (?, 'Main Online Account', 'wallet', 'WALLET-01', 'JazzCash / EasyPaisa / Bank', 0.00, 0.00, 0, 'active')", [$storeId]);
-            $accounts = $db->fetchAll("SELECT * FROM financial_accounts WHERE store_id = ? AND status = 'active' ORDER BY is_default DESC, id ASC", [$storeId]);
+            $cashAcc = $db->fetch("SELECT * FROM financial_accounts WHERE store_id = ? AND (is_default = 1 OR account_type = 'cash') LIMIT 1", [$storeId]);
         }
 
-        // 1b. Fetch dynamic digital gateways (wallets/banks)
-        $gateways = $db->fetchAll("
-            SELECT id, account_name, account_type, current_balance 
-            FROM financial_accounts 
-            WHERE store_id = ? AND account_type IN ('wallet', 'bank', 'other') AND is_default = 0 AND status = 'active' 
-            ORDER BY account_name ASC
-        ", [$storeId]);
-
-        if (empty($gateways)) {
-            $defaultGateways = ['JazzCash', 'EasyPaisa', 'SadaPay / NayaPay', 'Meezan Bank', 'Bank Transfer'];
-            foreach ($defaultGateways as $gw) {
-                $code = strtoupper(substr(preg_replace('/[^a-zA-Z0-9]/', '', $gw), 0, 8)) . '-01';
-                $db->query("INSERT INTO financial_accounts (store_id, account_name, account_type, account_number, is_default, status) VALUES (?, ?, 'wallet', ?, 0, 'active')", [
-                    $storeId, $gw, $code
-                ]);
+        $onlineAcc = $db->fetch("SELECT * FROM financial_accounts WHERE store_id = ? AND account_type != 'cash' AND (account_name LIKE '%Main%' OR is_default = 0) ORDER BY id ASC LIMIT 1", [$storeId]);
+        if (!$onlineAcc) {
+            $db->query("INSERT INTO financial_accounts (store_id, account_name, account_type, account_number, bank_name, opening_balance, current_balance, is_default, status) VALUES (?, 'Main Online / Digital Account', 'wallet', 'ONLINE-01', 'JazzCash / EasyPaisa / Bank', 0.00, 0.00, 0, 'active')", [$storeId]);
+            $onlineAcc = $db->fetch("SELECT * FROM financial_accounts WHERE store_id = ? AND account_type != 'cash' ORDER BY id ASC LIMIT 1", [$storeId]);
+        } else {
+            if ($onlineAcc['account_name'] === 'Main Online Account' || $onlineAcc['account_name'] === 'Main Bank / Online') {
+                $db->query("UPDATE financial_accounts SET account_name = 'Main Online / Digital Account' WHERE id = ?", [$onlineAcc['id']]);
+                $onlineAcc['account_name'] = 'Main Online / Digital Account';
             }
-            $gateways = $db->fetchAll("
-                SELECT id, account_name, account_type, current_balance 
-                FROM financial_accounts 
-                WHERE store_id = ? AND account_type IN ('wallet', 'bank', 'other') AND is_default = 0 AND status = 'active' 
-                ORDER BY account_name ASC
-            ", [$storeId]);
         }
+
+        // Deactivate any extra legacy dummy gateway accounts so only the 2 primary accounts exist cleanly
+        $db->query("UPDATE financial_accounts SET status = 'inactive' WHERE store_id = ? AND id NOT IN (?, ?)", [$storeId, (int)$cashAcc['id'], (int)$onlineAcc['id']]);
+
+        $accounts = [$cashAcc, $onlineAcc];
+        $gateways = [];
 
         // 2. Filters
         $dateFilter = trim($_GET['date_filter'] ?? 'this_month');
@@ -193,19 +187,12 @@ class CashflowController extends Controller {
         if ($defaultCashAcc) {
             $db->query("UPDATE financial_accounts SET current_balance = ? WHERE id = ?", [$liveCashInHand, $cashAccId]);
         }
-        foreach ($accounts as $acc) {
-            if ($acc['account_type'] !== 'cash') {
-                $accId = (int)$acc['id'];
-                $accOpening = (float)$acc['opening_balance'];
-                $accIn = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND to_account_id = ?", [$storeId, $accId])['sum'] ?? 0));
-                $accOut = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND from_account_id = ?", [$storeId, $accId])['sum'] ?? 0));
-                $accBal = $accOpening + $accIn - $accOut;
-                $db->query("UPDATE financial_accounts SET current_balance = ? WHERE id = ?", [$accBal, $accId]);
-            }
+        if ($onlineAcc) {
+            $db->query("UPDATE financial_accounts SET current_balance = ? WHERE id = ?", [$liveOnlineBalance, (int)$onlineAcc['id']]);
         }
 
-        // Re-read accounts with updated live balances
-        $accounts = $db->fetchAll("SELECT * FROM financial_accounts WHERE store_id = ? AND status = 'active' ORDER BY is_default DESC, id ASC", [$storeId]);
+        // Re-read accounts with updated live balances (strictly the 2 active primary accounts)
+        $accounts = $db->fetchAll("SELECT * FROM financial_accounts WHERE store_id = ? AND id IN (?, ?) ORDER BY is_default DESC, id ASC", [$storeId, (int)$cashAcc['id'], (int)$onlineAcc['id']]);
 
         // Total Liquid Funds
         $totalLiquid = $liveCashInHand + $liveOnlineBalance;
@@ -292,6 +279,7 @@ class CashflowController extends Controller {
             'gateways' => $gateways,
             'recentAdjustments' => $recentAdjustments,
             'defaultCashAcc' => $defaultCashAcc,
+            'defaultOnlineAcc' => $onlineAcc,
             'liveCashInHand' => $liveCashInHand,
             'totalOnlineBalance' => $liveOnlineBalance,
             'totalLiquid' => $totalLiquid
@@ -594,38 +582,7 @@ class CashflowController extends Controller {
         $db = Database::getInstance();
         $storeId = Tenant::currentStoreId();
 
-        $accountName = trim($_POST['account_name'] ?? '');
-        $accountType = trim($_POST['account_type'] ?? 'bank');
-        $accountNumber = trim($_POST['account_number'] ?? '');
-        $bankName = trim($_POST['bank_name'] ?? '');
-        $openingBalance = max(0, (float) ($_POST['opening_balance'] ?? 0));
-        $notes = trim($_POST['notes'] ?? '');
-
-        if ($accountName === '') {
-            $this->flash('error', 'Account Name is required.');
-            $this->redirect('cashflow/index?tab=balances');
-        }
-
-        if (!in_array($accountType, ['cash', 'bank', 'wallet', 'other'], true)) {
-            $accountType = 'bank';
-        }
-
-        $db->query("
-            INSERT INTO financial_accounts 
-            (store_id, account_name, account_type, account_number, bank_name, opening_balance, current_balance, is_default, status, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 0, 'active', ?)
-        ", [
-            $storeId,
-            $accountName,
-            $accountType,
-            $accountNumber ?: null,
-            $bankName ?: null,
-            $openingBalance,
-            $openingBalance,
-            $notes ?: null
-        ]);
-
-        $this->flash('success', "New Account '$accountName' added successfully.");
+        $this->flash('info', 'Store accounts are unified into 2 core pillars (Cash Drawer & Main Online Account). You can edit details directly.');
         $this->redirect('cashflow/index?tab=balances');
     }
 

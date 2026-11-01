@@ -2533,6 +2533,10 @@ class App {
             if ($defaultCashAcc) {
                 $db->query("UPDATE financial_accounts SET current_balance = ? WHERE id = ?", [$liveCashInHand, $cashAccId]);
             }
+            $onlineAcc = $db->fetch("SELECT id FROM financial_accounts WHERE store_id = ? AND account_type != 'cash' AND status = 'active' ORDER BY is_default DESC, id ASC LIMIT 1", [$storeId]);
+            if ($onlineAcc) {
+                $db->query("UPDATE financial_accounts SET current_balance = ? WHERE id = ?", [$liveOnlineBalance, (int)$onlineAcc['id']]);
+            }
 
             return [
                 'drawer_cash' => round($liveCashInHand, 2),

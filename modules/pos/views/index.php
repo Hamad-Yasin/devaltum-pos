@@ -2362,34 +2362,26 @@ $categoriesList = $categories ?? [];
                 </div>
             </div>
 
-            <!-- PAYMENT SETTLEMENT (ONLINE / DIGITAL MODE) -->
-            <div id="pos-online-settlement-panel" style="display: none; margin: 8px 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <div style="display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 800; color: #1e40af;">
+            <!-- PAYMENT SETTLEMENT (ONLINE / DIGITAL MODE - UNIFIED SINGLE ACCOUNT) -->
+            <div id="pos-online-settlement-panel" style="display: none; margin: 8px 12px; background: #eff6ff; border: 1.5px solid #93c5fd; border-radius: 10px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(37,99,235,0.06);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 800; color: #1e40af;">
                         <span class="material-symbols-rounded" style="font-size: 16px; color: #2563eb;">account_balance_wallet</span>
-                        <span>Digital Account / Gateway</span>
+                        <span>Main Online / Digital Account</span>
                     </div>
-                    <span style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 99px; background: #dbeafe; color: #1d4ed8;">Auto-Credit</span>
+                    <span style="font-size: 9.5px; font-weight: 850; padding: 2px 7px; border-radius: 99px; background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe;">
+                        Auto-Credited
+                    </span>
                 </div>
-                <div style="margin-bottom: 6px;">
-                    <select id="pos-online-account-select" class="form-select" onchange="window.updateOnlineAccountPreview()" style="height: 32px; font-size: 12px; font-weight: 750; background: #ffffff;">
-                        <?php if (!empty($financialAccounts)): ?>
-                            <?php foreach ($financialAccounts as $acc): ?>
-                                <?php if ($acc['account_type'] !== 'cash'): ?>
-                                    <option value="<?= (int) $acc['id'] ?>" <?= ((int)$acc['is_default'] === 1) ? 'selected' : '' ?>>
-                                        <?= Security::escape($acc['account_name']) ?> <?= !empty($acc['account_number']) ? '(' . Security::escape($acc['account_number']) . ')' : '' ?>
-                                    </option>
-                                <?php endif; ?>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <option value="">Default Online / Bank</option>
-                        <?php endif; ?>
-                    </select>
+                <div style="background: #ffffff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 7px 10px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 11px; color: #64748b; font-weight: 700;">Deposit Account:</span>
+                    <strong style="font-size: 11.5px; color: #0f172a; font-weight: 800;"><?= Security::escape($mainOnlineAccount['account_name'] ?? 'Main Online / Digital Account') ?></strong>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #1e40af; padding: 0 2px;">
-                    <span>Digital Account Impact:</span>
-                    <strong id="pos-online-net-preview" style="color: #2563eb; font-weight: 850;">+<?php echo App::money(0); ?></strong>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: #1e40af; padding: 0 2px;">
+                    <span style="font-weight: 750;">Digital Balance Impact:</span>
+                    <strong id="pos-online-net-preview" style="color: #2563eb; font-weight: 900; font-size: 12.5px;">+<?php echo App::money(0); ?></strong>
                 </div>
+                <input type="hidden" id="pos-online-account-select" value="<?= (int) ($mainOnlineAccount['id'] ?? 0) ?>">
             </div>
 
             <!-- ACTION BUTTONS (CLEAN CHECKOUT & CLEAR CART) -->
