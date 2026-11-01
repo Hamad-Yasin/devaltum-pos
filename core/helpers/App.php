@@ -2853,7 +2853,7 @@ class App {
 
         <div class="app-badge-footer">
             <span>DevAltum POS Enterprise</span>
-            <span>Version 1.1.8 Verified</span>
+            <span>Version 1.1.9 Verified</span>
         </div>
     </div>
 

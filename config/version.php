@@ -1,15 +1,16 @@
 <?php
 
 return [
-    'version' => '1.1.8',
-    'release_name' => 'Production Stable',
+    'version' => '1.1.9',
+    'release_name' => 'Packaging & Enterprise Resilience Edition',
     'release_date' => '2026-11-01',
     'highlights' => [
-        'Cash Tendered & Change Return: Live cash return calculator, drawer inflow preview, and live cockpit KPIs.',
-        'Zero-Margin Thermal Receipts: Strict 2px top padding, eliminated printer blank feed, and clean 1-PCS rate display.',
-        'Universal Barcode Scanner: Scanning from Settings, Reports, or any page instantly navigates to POS cart.',
-        'Standardized Code 128: 100% hardware scanner compatibility across Sticker Studio and MS Word .docx exports.',
-        'Deep Database Auto-Sync: Automatic schema self-healing and column synchronization across upgrades.'
+        'Packaging & Box Multipliers: Full carton/box vs single loose pieces inventory management with auto-unbox calculations.',
+        'POS Multiplier & Unit Switcher: 1-click toggle between Box and Piece in cart, outer box barcode scanner detection.',
+        'Complete Return & Exchange Engine: Item-level return toggles, live stock replenishment, drawer refund/inflow tracking.',
+        'Streamlined Single Cashflow & Digital Account: Unified live Drawer Cash and Online wallet accounts.',
+        'Enterprise Custom Error Pages: Modern 403, 404, 500 screens with Go Back navigation, POS fallback, and Esc shortcut.',
+        'Staff Login & Branch Stabilization: Zero-leak session cookie clearance on window close and seamless staff authentication.'
     ]
 ];
 
