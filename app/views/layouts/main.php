@@ -1073,7 +1073,7 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
     </script>
     <?php endif; ?>
 
-    <?php if (!Auth::isSuperAdmin() && ($activeMenu ?? '') !== 'pos' && App::setting('scanner_global_pos_redirect', '1') === '1'): ?>
+    <?php if (($activeMenu ?? '') !== 'pos' && App::setting('scanner_global_pos_redirect', '1') === '1'): ?>
     <!-- Universal Barcode Scanner Auto-Redirect to POS Checkout -->
     <script>
         (() => {
@@ -1086,6 +1086,17 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
             let bufferStartTime = 0;
             let keystrokeCount = 0;
             let isRedirecting = false;
+
+            // Check if user is actively in a barcode registration field (e.g. adding/editing product barcode in inventory)
+            const isIntentionalBarcodeInput = (el) => {
+                if (!el || !el.tagName) return false;
+                const tag = el.tagName.toUpperCase();
+                if (tag !== 'INPUT' && tag !== 'TEXTAREA') return false;
+                const name = (el.name || '').toLowerCase();
+                const id = (el.id || '').toLowerCase();
+                const cls = (el.className || '').toLowerCase();
+                return id === 'add_barcode_input' || id === 'barcode' || name === 'barcode' || cls.includes('barcode-input');
+            };
 
             const handleGlobalBarcodeRedirect = (rawBarcode) => {
                 if (isRedirecting) return;
@@ -1108,13 +1119,25 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
                 if (!barcode) return;
                 isRedirecting = true;
 
-                // Immediate redirect to POS with ?scan parameter
-                window.location.href = baseUrl + '/pos?scan=' + encodeURIComponent(barcode);
+                // Store in sessionStorage as fallback
+                try { sessionStorage.setItem('pending_pos_scan', barcode); } catch (e) {}
+
+                // Immediate redirect to POS with ?scan parameter (preserving tab session if active)
+                let targetUrl = baseUrl + '/pos?scan=' + encodeURIComponent(barcode);
+                if (typeof scopeTabSessionUrl === 'function') {
+                    targetUrl = scopeTabSessionUrl(targetUrl);
+                }
+                window.location.href = targetUrl;
             };
 
-            // 1. Hardware Barcode Scanner Listener (USB / Wireless Keyboard Emulation)
+            // Hardware Barcode Scanner Listener (USB / Wireless Keyboard Emulation)
             window.addEventListener('keydown', (e) => {
                 if (isRedirecting) return;
+
+                const activeEl = document.activeElement;
+                if (isIntentionalBarcodeInput(activeEl)) {
+                    return; // Allow intentional barcode scanning in inventory product forms
+                }
 
                 const key = e.key || '';
                 const code = e.code || '';
@@ -1130,11 +1153,14 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
                     keystrokeCount = 0;
                     clearTimeout(barcodeTimer);
 
-                    // Scanners emit characters at superhuman speed (<55ms per char on avg)
-                    // If candidate has at least 3 chars and was entered in < 500ms total
-                    if (candidate.length >= 3 && count >= 3 && (duration <= count * 70 + 80)) {
+                    // Scanners emit characters at hardware speed (usually <80ms per char)
+                    if (candidate.length >= 3 && count >= 3 && duration < 2500 && (duration <= count * 120 + 200)) {
                         e.preventDefault();
                         e.stopPropagation();
+                        e.stopImmediatePropagation?.();
+                        if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+                            activeEl.blur();
+                        }
                         handleGlobalBarcodeRedirect(candidate);
                         return;
                     }
@@ -1151,11 +1177,11 @@ $developerWaMessage = urlencode('I am coming from DevAltum POS');
                     keystrokeCount++;
 
                     clearTimeout(barcodeTimer);
-                    // Reset buffer if delay between keystrokes exceeds 70ms (human typing)
+                    // Reset buffer if delay between keystrokes exceeds 140ms (human typing)
                     barcodeTimer = setTimeout(() => {
                         barcodeBuffer = '';
                         keystrokeCount = 0;
-                    }, 70);
+                    }, 140);
                 }
             }, true);
         })();

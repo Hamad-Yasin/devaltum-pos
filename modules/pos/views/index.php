@@ -4536,11 +4536,28 @@ $categoriesList = $categories ?? [];
                 'unit_label' => $autoAddProduct['unit_type'] ?? 'pcs',
                 'scan_quantity' => (int) ($autoAddProduct['scan_quantity'] ?? 1)
             ]); ?>;
+            try { sessionStorage.removeItem('pending_pos_scan'); } catch (e) {}
             if (window.history && window.history.replaceState) {
                 const cleanPosUrl = (typeof baseUrl !== 'undefined' ? baseUrl : '') + '/pos';
                 window.history.replaceState({}, document.title, cleanPosUrl);
             }
             addToCart(autoProd, autoProd.scan_quantity || 1);
+        })();
+    <?php else: ?>
+        (() => {
+            const urlScan = new URLSearchParams(window.location.search).get('scan') || sessionStorage.getItem('pending_pos_scan');
+            if (urlScan) {
+                try { sessionStorage.removeItem('pending_pos_scan'); } catch (e) {}
+                if (window.history && window.history.replaceState) {
+                    const cleanPosUrl = (typeof baseUrl !== 'undefined' ? baseUrl : '') + '/pos';
+                    window.history.replaceState({}, document.title, cleanPosUrl);
+                }
+                setTimeout(() => {
+                    if (typeof handleRemoteBarcode === 'function') {
+                        handleRemoteBarcode(urlScan);
+                    }
+                }, 120);
+            }
         })();
     <?php endif; ?>
 
