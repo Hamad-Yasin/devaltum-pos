@@ -1853,6 +1853,29 @@ $categoriesList = $categories ?? [];
     }
 }
 
+.pos-denom-chip {
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 10.5px;
+    font-weight: 800;
+    padding: 3px 6px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    user-select: none;
+    line-height: 1.2;
+}
+.pos-denom-chip:hover {
+    background: #0f6dff;
+    color: #ffffff;
+    border-color: #0f6dff;
+}
+.pos-denom-chip:active {
+    transform: scale(0.96);
+}
+
 /* 4. MOBILE FLOATING QUICK CART SUMMARY BAR */
 .pos-mobile-cart-bar {
     display: none;
@@ -1990,6 +2013,26 @@ $categoriesList = $categories ?? [];
                     <div class="stat-box-inline">
                         <span class="stat-label-inline">Total:</span>
                         <strong class="stat-val-inline stat-amount-highlight" id="stat-total-amount"><?php echo App::money(0); ?></strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pos-strip-divider"></div>
+
+            <!-- Live Register Balances (Drawer & Online) -->
+            <div class="pos-strip-block" title="Real-time Counter Till & Digital Account Balances">
+                <span class="pos-strip-label">Live Register</span>
+                <div class="pos-stats-summary-inline">
+                    <div class="stat-box-inline" title="Physical Cash in Counter Drawer Till">
+                        <span class="material-symbols-rounded" style="font-size:14px; color:#059669; vertical-align:middle;">point_of_sale</span>
+                        <span class="stat-label-inline">Drawer:</span>
+                        <strong class="stat-val-inline" id="live-pos-drawer-val" style="color:#059669; font-weight:850;"><?php echo App::money($liveDrawerCash ?? 0); ?></strong>
+                    </div>
+                    <span class="stat-sep-inline">|</span>
+                    <div class="stat-box-inline" title="Online & Bank Accounts Balance">
+                        <span class="material-symbols-rounded" style="font-size:14px; color:#2563eb; vertical-align:middle;">account_balance</span>
+                        <span class="stat-label-inline">Digital:</span>
+                        <strong class="stat-val-inline" id="live-pos-digital-val" style="color:#2563eb; font-weight:850;"><?php echo App::money($liveDigitalBalance ?? 0); ?></strong>
                     </div>
                 </div>
             </div>
@@ -2277,6 +2320,74 @@ $categoriesList = $categories ?? [];
                 <div class="total-row total-row-main">
                     <span>Total</span>
                     <span id="total-val" style="color:#0f6dff;"><?php echo App::money(0); ?></span>
+                </div>
+            </div>
+
+            <!-- PAYMENT SETTLEMENT & CHANGE CALCULATOR (CASH MODE) -->
+            <div id="pos-cash-settlement-panel" style="margin: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div style="display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 800; color: #0f172a;">
+                        <span class="material-symbols-rounded" style="font-size: 16px; color: #059669;">payments</span>
+                        <span>Cash Tendered &amp; Change</span>
+                    </div>
+                    <span id="pos-change-badge" style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 99px; background: #e2e8f0; color: #475569;">Exact</span>
+                </div>
+
+                <!-- Input & Quick Denomination Chips -->
+                <div style="display: flex; gap: 5px; align-items: center; margin-bottom: 7px;">
+                    <div style="position: relative; flex: 1; min-width: 0;">
+                        <span style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 800; color: #64748b;"><?= App::currency() ?></span>
+                        <input type="number" id="cash-tendered-input" class="form-input" placeholder="0.00" min="0" step="any" oninput="window.calcChangeDue()" style="padding-left: 30px; height: 32px; font-size: 13px; font-weight: 900; text-align: right; color: #0f172a; border-color: #cbd5e1; background: #ffffff;">
+                    </div>
+                    <div style="display: flex; gap: 3px; flex-shrink: 0;">
+                        <button type="button" class="pos-denom-chip" onclick="window.setTenderedAmount('exact')" title="Exact bill amount">Exact</button>
+                        <button type="button" class="pos-denom-chip" onclick="window.addTenderedDenom(100)">+100</button>
+                        <button type="button" class="pos-denom-chip" onclick="window.addTenderedDenom(500)">+500</button>
+                        <button type="button" class="pos-denom-chip" onclick="window.addTenderedDenom(1000)">+1K</button>
+                        <button type="button" class="pos-denom-chip" onclick="window.addTenderedDenom(5000)">+5K</button>
+                    </div>
+                </div>
+
+                <!-- Live Return Change Output -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 6px; background: #ffffff; border: 1.5px solid #bbf7d0; margin-bottom: 4px;">
+                    <span style="font-size: 11px; font-weight: 750; color: #334155;">Return Change (Wapis):</span>
+                    <strong id="pos-change-due-val" style="font-size: 13.5px; font-weight: 900; color: #059669;"><?php echo App::money(0); ?></strong>
+                </div>
+
+                <!-- Net Drawer Impact Live Preview -->
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #64748b; padding: 0 2px;">
+                    <span>Drawer Cash Inflow:</span>
+                    <strong id="pos-drawer-net-preview" style="color: #059669; font-weight: 850;">+<?php echo App::money(0); ?></strong>
+                </div>
+            </div>
+
+            <!-- PAYMENT SETTLEMENT (ONLINE / DIGITAL MODE) -->
+            <div id="pos-online-settlement-panel" style="display: none; margin: 8px 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div style="display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 800; color: #1e40af;">
+                        <span class="material-symbols-rounded" style="font-size: 16px; color: #2563eb;">account_balance_wallet</span>
+                        <span>Digital Account / Gateway</span>
+                    </div>
+                    <span style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 99px; background: #dbeafe; color: #1d4ed8;">Auto-Credit</span>
+                </div>
+                <div style="margin-bottom: 6px;">
+                    <select id="pos-online-account-select" class="form-select" onchange="window.updateOnlineAccountPreview()" style="height: 32px; font-size: 12px; font-weight: 750; background: #ffffff;">
+                        <?php if (!empty($financialAccounts)): ?>
+                            <?php foreach ($financialAccounts as $acc): ?>
+                                <?php if ($acc['account_type'] !== 'cash'): ?>
+                                    <option value="<?= (int) $acc['id'] ?>" <?= ((int)$acc['is_default'] === 1) ? 'selected' : '' ?>>
+                                        <?= Security::escape($acc['account_name']) ?> <?= !empty($acc['account_number']) ? '(' . Security::escape($acc['account_number']) . ')' : '' ?>
+                                    </option>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <option value="">Default Online / Bank</option>
+                        <?php endif; ?>
+                    </select>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #1e40af; padding: 0 2px;">
+                    <span>Digital Account Impact:</span>
+                    <strong id="pos-online-net-preview" style="color: #2563eb; font-weight: 850;">+<?php echo App::money(0); ?></strong>
                 </div>
             </div>
 
@@ -3412,6 +3523,107 @@ $categoriesList = $categories ?? [];
         if (currentPosRightTab === 'profit') {
             renderProfitAdvisorTab();
         }
+
+        window.calcChangeDue();
+    };
+
+    window.calcChangeDue = () => {
+        let subtotal = 0;
+        cart.forEach((item) => {
+            subtotal += roundMoney((item.price * item.quantity) - item.discount);
+        });
+        if (globalDiscount > subtotal) globalDiscount = subtotal;
+        const taxBase = roundMoney(subtotal - globalDiscount);
+        const taxAmount = taxSettings.enabled ? roundMoney(taxBase * (Number(taxSettings.rate || 0) / 100)) : 0;
+        const checkoutTotal = roundMoney(taxBase + taxAmount);
+
+        const tenderedInput = document.getElementById('cash-tendered-input');
+        const changeBadge = document.getElementById('pos-change-badge');
+        const changeDueVal = document.getElementById('pos-change-due-val');
+        const drawerNetPreview = document.getElementById('pos-drawer-net-preview');
+        const onlineNetPreview = document.getElementById('pos-online-net-preview');
+
+        if (onlineNetPreview) {
+            onlineNetPreview.textContent = '+' + window.appFormatMoney(checkoutTotal);
+        }
+
+        if (!tenderedInput || !changeDueVal) return;
+
+        const rawVal = tenderedInput.value.trim();
+        if (rawVal === '') {
+            if (changeBadge) {
+                changeBadge.textContent = 'Exact';
+                changeBadge.style.background = '#e2e8f0';
+                changeBadge.style.color = '#475569';
+            }
+            changeDueVal.textContent = window.appFormatMoney(0);
+            changeDueVal.style.color = '#059669';
+            if (drawerNetPreview) drawerNetPreview.textContent = '+' + window.appFormatMoney(checkoutTotal);
+            return;
+        }
+
+        const tendered = parseFloat(rawVal) || 0;
+        const diff = roundMoney(tendered - checkoutTotal);
+
+        if (diff > 0) {
+            if (changeBadge) {
+                changeBadge.textContent = 'Change Due';
+                changeBadge.style.background = '#dcfce7';
+                changeBadge.style.color = '#15803d';
+            }
+            changeDueVal.textContent = window.appFormatMoney(diff);
+            changeDueVal.style.color = '#16a34a';
+            if (drawerNetPreview) drawerNetPreview.textContent = `+${window.appFormatMoney(checkoutTotal)} (Net Inflow)`;
+        } else if (diff === 0) {
+            if (changeBadge) {
+                changeBadge.textContent = 'Exact Paid';
+                changeBadge.style.background = '#e0f2fe';
+                changeBadge.style.color = '#0369a1';
+            }
+            changeDueVal.textContent = window.appFormatMoney(0);
+            changeDueVal.style.color = '#0284c7';
+            if (drawerNetPreview) drawerNetPreview.textContent = '+' + window.appFormatMoney(checkoutTotal);
+        } else {
+            if (changeBadge) {
+                changeBadge.textContent = 'Short';
+                changeBadge.style.background = '#ffe4e6';
+                changeBadge.style.color = '#e11d48';
+            }
+            changeDueVal.textContent = `Short: -${window.appFormatMoney(Math.abs(diff))}`;
+            changeDueVal.style.color = '#e11d48';
+            if (drawerNetPreview) drawerNetPreview.textContent = `+${window.appFormatMoney(tendered)} (Partial)`;
+        }
+    };
+
+    window.setTenderedAmount = (val) => {
+        const tenderedInput = document.getElementById('cash-tendered-input');
+        if (!tenderedInput) return;
+        if (val === 'exact') {
+            let subtotal = 0;
+            cart.forEach((item) => {
+                subtotal += roundMoney((item.price * item.quantity) - item.discount);
+            });
+            if (globalDiscount > subtotal) globalDiscount = subtotal;
+            const taxBase = roundMoney(subtotal - globalDiscount);
+            const taxAmount = taxSettings.enabled ? roundMoney(taxBase * (Number(taxSettings.rate || 0) / 100)) : 0;
+            const checkoutTotal = roundMoney(taxBase + taxAmount);
+            tenderedInput.value = checkoutTotal > 0 ? checkoutTotal : '';
+        } else {
+            tenderedInput.value = val;
+        }
+        window.calcChangeDue();
+    };
+
+    window.addTenderedDenom = (amt) => {
+        const tenderedInput = document.getElementById('cash-tendered-input');
+        if (!tenderedInput) return;
+        const current = parseFloat(tenderedInput.value) || 0;
+        tenderedInput.value = (current + amt).toFixed(2).replace(/\.00$/, '');
+        window.calcChangeDue();
+    };
+
+    window.updateOnlineAccountPreview = () => {
+        window.calcChangeDue();
     };
 
     window.scrollToPosCart = () => {
@@ -4164,6 +4376,18 @@ $categoriesList = $categories ?? [];
         if (currentPaymentMethod === 'credit') {
             setCustomerFormExpanded(true);
         }
+
+        const cashPanel = document.getElementById('pos-cash-settlement-panel');
+        const onlinePanel = document.getElementById('pos-online-settlement-panel');
+        if (cashPanel) {
+            cashPanel.style.display = currentPaymentMethod === 'cash' ? 'block' : 'none';
+        }
+        if (onlinePanel) {
+            onlinePanel.style.display = currentPaymentMethod === 'online' ? 'block' : 'none';
+        }
+        if (typeof window.calcChangeDue === 'function') {
+            window.calcChangeDue();
+        }
     };
 
     const renderSaleChannelUI = () => {
@@ -4433,6 +4657,12 @@ $categoriesList = $categories ?? [];
         const creditInitialPaymentInput = document.getElementById('credit-initial-payment');
         const creditInitialPaymentRaw = Number(creditInitialPaymentInput?.value || 0);
         const creditInitialPayment = Math.max(0, Math.min(checkoutTotal, isNaN(creditInitialPaymentRaw) ? 0 : creditInitialPaymentRaw));
+        const tenderedInput = document.getElementById('cash-tendered-input');
+        const onlineSelect = document.getElementById('pos-online-account-select');
+        const rawTendered = tenderedInput ? parseFloat(tenderedInput.value) : 0;
+        const tenderedVal = currentPaymentMethod === 'cash' ? (rawTendered > 0 ? rawTendered : checkoutTotal) : checkoutTotal;
+        const changeVal = currentPaymentMethod === 'cash' ? Math.max(0, roundMoney(tenderedVal - checkoutTotal)) : 0;
+        const paymentAccountId = currentPaymentMethod === 'online' && onlineSelect ? (onlineSelect.value || null) : null;
 
         const payload = {
             items: cart,
@@ -4450,6 +4680,9 @@ $categoriesList = $categories ?? [];
             credit_private_note: document.getElementById('credit-private-note')?.value || '',
             credit_initial_payment: currentPaymentMethod === 'credit' ? creditInitialPayment : 0,
             credit_initial_payment_method: document.getElementById('credit-initial-payment-method')?.value || 'cash',
+            tendered_amount: tenderedVal,
+            change_amount: changeVal,
+            payment_account_id: paymentAccountId,
             transaction_type: currentTransactionType,
             status
         };
@@ -4467,6 +4700,15 @@ $categoriesList = $categories ?? [];
             if (status === 'draft') {
                 window.appToast('Sale held successfully as draft!', 'success');
             } else if (status === 'paid') {
+                if (data.drawer_cash !== undefined) {
+                    const drawerEl = document.getElementById('live-pos-drawer-val');
+                    if (drawerEl) drawerEl.textContent = window.appFormatMoney(data.drawer_cash);
+                }
+                if (data.digital_balance !== undefined) {
+                    const digitalEl = document.getElementById('live-pos-digital-val');
+                    if (digitalEl) digitalEl.textContent = window.appFormatMoney(data.digital_balance);
+                }
+
                 if (isDirectPrint) {
                     const printFrame = document.getElementById('pos-direct-print-frame');
                     if (printFrame) {
@@ -4474,10 +4716,18 @@ $categoriesList = $categories ?? [];
                     } else {
                         window.open(scopeUrl(`${baseUrl}/pos/receipt/` + data.invoice_id), '_blank');
                     }
-                    window.appToast('Sale completed & sent to printer directly!', 'success');
+                    if (changeVal > 0) {
+                        window.appToast(`Sale completed! Return Change: ${window.appFormatMoney(changeVal)}`, 'success');
+                    } else {
+                        window.appToast('Sale completed & sent to printer directly!', 'success');
+                    }
                 } else {
                     window.open(scopeUrl(`${baseUrl}/pos/receipt/` + data.invoice_id), '_blank');
-                    window.appToast('Sale completed successfully!', 'success');
+                    if (changeVal > 0) {
+                        window.appToast(`Sale completed! Return Change: ${window.appFormatMoney(changeVal)}`, 'success');
+                    } else {
+                        window.appToast('Sale completed successfully!', 'success');
+                    }
                 }
             }
 
@@ -4500,6 +4750,8 @@ $categoriesList = $categories ?? [];
         if (document.getElementById('credit-private-note')) document.getElementById('credit-private-note').value = '';
         if (document.getElementById('credit-initial-payment')) document.getElementById('credit-initial-payment').value = '';
         if (document.getElementById('credit-initial-payment-method')) document.getElementById('credit-initial-payment-method').value = 'cash';
+        const tenderedInput = document.getElementById('cash-tendered-input');
+        if (tenderedInput) tenderedInput.value = '';
         setCustomerFormExpanded(false);
         updateCustomerSummaryBadge();
         currentPaymentMethod = 'cash';
@@ -4510,6 +4762,9 @@ $categoriesList = $categories ?? [];
         globalDiscount = 0;
         renderCart();
         persistCheckoutState();
+        if (typeof window.calcChangeDue === 'function') {
+            window.calcChangeDue();
+        }
     };
 
     // Auto-sync any legacy residual queue on load

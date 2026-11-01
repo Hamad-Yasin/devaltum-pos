@@ -674,6 +674,9 @@ class App {
         self::addColumnIfMissing($db, 'invoices', 'credit_due_date', "DATETIME NULL");
         self::addColumnIfMissing($db, 'invoices', 'credit_private_note', "TEXT NULL");
         self::addColumnIfMissing($db, 'invoices', 'paid_amount', "DECIMAL(10,2) NOT NULL DEFAULT 0");
+        self::addColumnIfMissing($db, 'invoices', 'tendered_amount', "DECIMAL(10,2) NULL DEFAULT 0.00 AFTER `paid_amount`");
+        self::addColumnIfMissing($db, 'invoices', 'change_amount', "DECIMAL(10,2) NULL DEFAULT 0.00 AFTER `tendered_amount`");
+        self::addColumnIfMissing($db, 'invoices', 'payment_account_id', "INT NULL AFTER `payment_method`");
         self::addColumnIfMissing($db, 'invoices', 'balance_due', "DECIMAL(10,2) NOT NULL DEFAULT 0");
         self::addColumnIfMissing($db, 'invoices', 'is_credit_settled', "TINYINT(1) NOT NULL DEFAULT 0");
         self::addColumnIfMissing($db, 'invoices', 'last_credit_reminder_at', "DATETIME NULL");
@@ -2444,6 +2447,95 @@ class App {
         $existsBackup = $db->fetch("SELECT setting_key FROM settings WHERE setting_key = ? LIMIT 1", ['last_auto_backup_date']);
         if (!$existsBackup) {
             $db->query("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)", ['last_auto_backup_date', $today]);
+        }
+    }
+
+    public static function getStoreDrawerAndDigitalBalance($storeId) {
+        $storeId = (int) $storeId;
+        if ($storeId <= 0) {
+            return ['drawer_cash' => 0.0, 'digital_balance' => 0.0];
+        }
+
+        $db = Database::getInstance();
+        try {
+            $accounts = $db->fetchAll("SELECT * FROM financial_accounts WHERE store_id = ? AND status = 'active' ORDER BY is_default DESC, id ASC", [$storeId]);
+            if (empty($accounts)) {
+                $db->query("INSERT INTO financial_accounts (store_id, account_name, account_type, opening_balance, current_balance, is_default, status) VALUES (?, 'Cash in Hand (Counter Till)', 'cash', 0.00, 0.00, 1, 'active')", [$storeId]);
+                $db->query("INSERT INTO financial_accounts (store_id, account_name, account_type, opening_balance, current_balance, is_default, status) VALUES (?, 'Main Bank / Online', 'bank', 0.00, 0.00, 0, 'active')", [$storeId]);
+                $accounts = $db->fetchAll("SELECT * FROM financial_accounts WHERE store_id = ? AND status = 'active' ORDER BY is_default DESC, id ASC", [$storeId]);
+            }
+
+            $defaultCashAcc = null;
+            foreach ($accounts as $acc) {
+                if ((int)$acc['is_default'] === 1 || $acc['account_type'] === 'cash') {
+                    $defaultCashAcc = $acc;
+                    break;
+                }
+            }
+            $cashAccId = $defaultCashAcc ? (int)$defaultCashAcc['id'] : 0;
+
+            // Sales breakdown
+            $cashSalesSum = (float) (($db->fetch("SELECT SUM(paid_amount) AS sum FROM invoices WHERE store_id = ? AND status = 'paid' AND payment_method = 'cash'", [$storeId])['sum'] ?? 0));
+            $onlineSalesSum = (float) (($db->fetch("SELECT SUM(paid_amount) AS sum FROM invoices WHERE store_id = ? AND status = 'paid' AND LOWER(payment_method) IN ('online', 'card', 'bank', 'jazzcash', 'easypaisa')", [$storeId])['sum'] ?? 0));
+
+            // Credit recoveries breakdown
+            $cashCreditRecv = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM credit_payments WHERE store_id = ? AND payment_method = 'cash'", [$storeId])['sum'] ?? 0));
+            $onlineCreditRecv = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM credit_payments WHERE store_id = ? AND LOWER(payment_method) IN ('online', 'card', 'bank', 'jazzcash', 'easypaisa')", [$storeId])['sum'] ?? 0));
+
+            // Expenses breakdown
+            $cashExpenses = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM expenses WHERE store_id = ? AND payment_method = 'cash'", [$storeId])['sum'] ?? 0));
+            $onlineExpenses = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM expenses WHERE store_id = ? AND LOWER(payment_method) IN ('online', 'card', 'bank')", [$storeId])['sum'] ?? 0));
+
+            // Supplier payments breakdown
+            $cashSupplierPayments = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM supplier_payments WHERE store_id = ? AND payment_method = 'cash'", [$storeId])['sum'] ?? 0));
+            $onlineSupplierPayments = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM supplier_payments WHERE store_id = ? AND LOWER(payment_method) IN ('online', 'bank')", [$storeId])['sum'] ?? 0));
+
+            // Exchanges impact
+            $exchangeCashGiven = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'money_exchange' AND from_account_id = ?", [$storeId, $cashAccId])['sum'] ?? 0));
+            $exchangeCashReceived = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'money_exchange' AND to_account_id = ?", [$storeId, $cashAccId])['sum'] ?? 0));
+            $exchangeFeesEarned = (float) (($db->fetch("SELECT SUM(fee_amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'money_exchange'", [$storeId])['sum'] ?? 0));
+
+            // Internal Transfers impact
+            $transferInToCash = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'transfer' AND to_account_id = ?", [$storeId, $cashAccId])['sum'] ?? 0));
+            $transferOutFromCash = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'transfer' AND from_account_id = ?", [$storeId, $cashAccId])['sum'] ?? 0));
+
+            // Adjustments impact
+            $adjustInCash = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'adjustment_in' AND to_account_id = ?", [$storeId, $cashAccId])['sum'] ?? 0));
+            $adjustOutCash = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'adjustment_out' AND from_account_id = ?", [$storeId, $cashAccId])['sum'] ?? 0));
+
+            // Cash in Hand
+            $cashOpening = (float) ($defaultCashAcc['opening_balance'] ?? 0);
+            $liveCashInHand = ($cashOpening + $cashSalesSum + $cashCreditRecv + $exchangeCashReceived + $transferInToCash + $adjustInCash + $exchangeFeesEarned)
+                            - ($cashExpenses + $cashSupplierPayments + $exchangeCashGiven + $transferOutFromCash + $adjustOutCash);
+
+            // Online / Bank Balance
+            $totalOnlineOpening = 0.0;
+            foreach ($accounts as $acc) {
+                if ($acc['account_type'] !== 'cash' && (int)$acc['id'] !== $cashAccId) {
+                    $totalOnlineOpening += (float) $acc['opening_balance'];
+                }
+            }
+            $exchangeOnlineReceived = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'money_exchange' AND to_account_id != ? AND to_account_id IS NOT NULL", [$storeId, $cashAccId])['sum'] ?? 0));
+            $exchangeOnlineGiven = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'money_exchange' AND from_account_id != ? AND from_account_id IS NOT NULL", [$storeId, $cashAccId])['sum'] ?? 0));
+            $transferInToOnline = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'transfer' AND to_account_id != ? AND to_account_id IS NOT NULL", [$storeId, $cashAccId])['sum'] ?? 0));
+            $transferOutFromOnline = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'transfer' AND from_account_id != ? AND from_account_id IS NOT NULL", [$storeId, $cashAccId])['sum'] ?? 0));
+            $adjustInOnline = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'adjustment_in' AND to_account_id != ? AND to_account_id IS NOT NULL", [$storeId, $cashAccId])['sum'] ?? 0));
+            $adjustOutOnline = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM cashflow_transactions WHERE store_id = ? AND transaction_type = 'adjustment_out' AND from_account_id != ? AND from_account_id IS NOT NULL", [$storeId, $cashAccId])['sum'] ?? 0));
+
+            $liveOnlineBalance = ($totalOnlineOpening + $onlineSalesSum + $onlineCreditRecv + $exchangeOnlineReceived + $transferInToOnline + $adjustInOnline)
+                               - ($onlineExpenses + $onlineSupplierPayments + $exchangeOnlineGiven + $transferOutFromOnline + $adjustOutOnline);
+
+            // Update cached current_balance
+            if ($defaultCashAcc) {
+                $db->query("UPDATE financial_accounts SET current_balance = ? WHERE id = ?", [$liveCashInHand, $cashAccId]);
+            }
+
+            return [
+                'drawer_cash' => round($liveCashInHand, 2),
+                'digital_balance' => round($liveOnlineBalance, 2)
+            ];
+        } catch (Exception $e) {
+            return ['drawer_cash' => 0.0, 'digital_balance' => 0.0];
         }
     }
 

@@ -70,6 +70,9 @@ class PosController extends Controller {
                 )
             );
         }
+        $financialAccounts = $db->fetchAll("SELECT id, account_name, account_type, account_number, is_default FROM financial_accounts WHERE store_id = ? AND status = 'active' ORDER BY is_default DESC, id ASC", [$storeId]);
+        $liveBalances = App::getStoreDrawerAndDigitalBalance($storeId);
+
         $this->view('../../modules/pos/views/index', [
             'pageTitle' => 'Point of Sale',
             'activeMenu' => 'pos',
@@ -79,6 +82,9 @@ class PosController extends Controller {
             'currentPage' => $page,
             'totalPages' => $totalPages,
             'totalProducts' => $totalProducts,
+            'financialAccounts' => $financialAccounts,
+            'liveDrawerCash' => (float) ($liveBalances['drawer_cash'] ?? 0),
+            'liveDigitalBalance' => (float) ($liveBalances['digital_balance'] ?? 0),
             'taxSettings' => [
                 'enabled' => App::setting('tax_enabled', '0') === '1',
                 'fbr_enabled' => App::setting('fbr_pos_enabled', '0') === '1',
@@ -289,6 +295,8 @@ class PosController extends Controller {
             $creditPrivateNote = trim((string) ($data['credit_private_note'] ?? ''));
             $creditInitialPayment = max(0, round((float) ($data['credit_initial_payment'] ?? 0)));
             $creditInitialPaymentMethod = $this->sanitizeCreditPaymentMethod($data['credit_initial_payment_method'] ?? 'cash');
+            $tenderedAmountRaw = isset($data['tendered_amount']) ? (float) $data['tendered_amount'] : null;
+            $paymentAccountId = !empty($data['payment_account_id']) ? (int) $data['payment_account_id'] : null;
             $saleCreatedAt = $this->sanitizeSaleDate($data['sale_date'] ?? '');
             // Temporary value for insert; replaced with formatted invoice id after row creation.
             $customId = 'INV-TMP-' . strtoupper(substr(uniqid('', true), -8));
@@ -408,10 +416,20 @@ class PosController extends Controller {
             $finalTotal = max(0, $taxBase + $taxAmount);
             if ($status === 'draft') {
                 $paidAmount = 0;
+                $tenderedAmount = 0;
+                $changeAmount = 0;
             } elseif ($paymentMethod === 'credit') {
                 $paidAmount = min($finalTotal, $creditInitialPayment);
+                $tenderedAmount = $paidAmount;
+                $changeAmount = 0;
+            } elseif ($paymentMethod === 'cash') {
+                $paidAmount = $finalTotal;
+                $tenderedAmount = ($tenderedAmountRaw !== null && $tenderedAmountRaw > 0) ? $tenderedAmountRaw : $finalTotal;
+                $changeAmount = max(0, $tenderedAmount - $finalTotal);
             } else {
                 $paidAmount = $finalTotal;
+                $tenderedAmount = $finalTotal;
+                $changeAmount = 0;
             }
             $balanceDue = max(0, $finalTotal - $paidAmount);
             $isCreditSettled = $balanceDue <= 0 ? 1 : 0;
@@ -419,8 +437,8 @@ class PosController extends Controller {
             $pointsRedeemed = max(0, (int) ($data['points_redeemed'] ?? 0));
             $pointsEarned = ($status === 'paid' && in_array($transactionType, ['Sale', 'Exchange'], true)) ? max(0, (int) floor($finalTotal / 100)) : 0;
 
-            $connection->prepare("UPDATE invoices SET subtotal = ?, total = ?, paid_amount = ?, balance_due = ?, is_credit_settled = ?, tax_amount = ?, tax_rate = ?, tax_label = ?, fbr_pos_id = ?, points_earned = ?, points_redeemed = ? WHERE id = ?")
-                ->execute([$subtotal, $finalTotal, $paidAmount, $balanceDue, $isCreditSettled, $taxAmount, $taxSettings['enabled'] ? $taxSettings['rate'] : 0, $taxSettings['enabled'] ? ($taxSettings['label'] ?: 'Sales Tax') : null, $taxSettings['enabled'] ? ($taxSettings['fbr_pos_id'] ?: null) : null, $pointsEarned, $pointsRedeemed, $invoiceId]);
+            $connection->prepare("UPDATE invoices SET subtotal = ?, total = ?, paid_amount = ?, tendered_amount = ?, change_amount = ?, payment_account_id = ?, balance_due = ?, is_credit_settled = ?, tax_amount = ?, tax_rate = ?, tax_label = ?, fbr_pos_id = ?, points_earned = ?, points_redeemed = ? WHERE id = ?")
+                ->execute([$subtotal, $finalTotal, $paidAmount, $tenderedAmount, $changeAmount, $paymentAccountId, $balanceDue, $isCreditSettled, $taxAmount, $taxSettings['enabled'] ? $taxSettings['rate'] : 0, $taxSettings['enabled'] ? ($taxSettings['label'] ?: 'Sales Tax') : null, $taxSettings['enabled'] ? ($taxSettings['fbr_pos_id'] ?: null) : null, $pointsEarned, $pointsRedeemed, $invoiceId]);
 
             if ($paymentMethod === 'credit') {
                 $connection->prepare("
@@ -463,10 +481,22 @@ class PosController extends Controller {
             }
 
             $detail = ($status === 'draft' ? 'Saved draft' : 'Completed ' . strtolower($transactionType)) . " $customId via " . ucfirst($paymentMethod) . " for " . App::money($finalTotal);
+            if ($paymentMethod === 'cash' && $changeAmount > 0) {
+                $detail .= " (Tendered: " . App::money($tenderedAmount) . ", Change: " . App::money($changeAmount) . ")";
+            }
             $connection->prepare("INSERT INTO activity_logs (store_id, user_id, action, details) VALUES (?, ?, ?, ?)")->execute([$storeId, Auth::id(), 'Sale', $detail]);
 
             $connection->commit();
-            $this->jsonResponse(['success' => true, 'invoice_id' => $invoiceId, 'custom_id' => $customId]);
+            $freshBalances = App::getStoreDrawerAndDigitalBalance($storeId);
+            $this->jsonResponse([
+                'success' => true,
+                'invoice_id' => $invoiceId,
+                'custom_id' => $customId,
+                'tendered_amount' => $tenderedAmount,
+                'change_amount' => $changeAmount,
+                'drawer_cash' => (float) ($freshBalances['drawer_cash'] ?? 0),
+                'digital_balance' => (float) ($freshBalances['digital_balance'] ?? 0)
+            ]);
         } catch (Exception $e) {
             if ($connection->inTransaction()) {
                 $connection->rollBack();
@@ -851,6 +881,27 @@ class PosController extends Controller {
         } catch (Exception $e) {
             // Keep checkout working even if schema update is not allowed.
         }
+
+        try {
+            if (!$this->hasColumn($connection, 'invoices', 'tendered_amount')) {
+                $connection->exec("ALTER TABLE invoices ADD COLUMN tendered_amount DECIMAL(10,2) NULL DEFAULT 0.00 AFTER paid_amount");
+                $this->columnCache['invoices.tendered_amount'] = true;
+            }
+        } catch (Exception $e) {}
+
+        try {
+            if (!$this->hasColumn($connection, 'invoices', 'change_amount')) {
+                $connection->exec("ALTER TABLE invoices ADD COLUMN change_amount DECIMAL(10,2) NULL DEFAULT 0.00 AFTER tendered_amount");
+                $this->columnCache['invoices.change_amount'] = true;
+            }
+        } catch (Exception $e) {}
+
+        try {
+            if (!$this->hasColumn($connection, 'invoices', 'payment_account_id')) {
+                $connection->exec("ALTER TABLE invoices ADD COLUMN payment_account_id INT NULL AFTER payment_method");
+                $this->columnCache['invoices.payment_account_id'] = true;
+            }
+        } catch (Exception $e) {}
     }
 
     private function hasColumn($connection, $table, $column) {

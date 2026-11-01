@@ -834,6 +834,16 @@ $receiptOrder = App::receiptSectionOrder();
                                 <strong><?php echo number_format((float) $displayPaid, 2); ?></strong>
                             </div>
                         <?php endif; ?>
+                        <?php if (!empty($invoice['tendered_amount']) && (float) $invoice['tendered_amount'] > (float) $invoiceTotal): ?>
+                            <div class="retail-total-line">
+                                <span>Cash Received :</span>
+                                <strong><?php echo number_format((float) $invoice['tendered_amount'], 2); ?></strong>
+                            </div>
+                            <div class="retail-total-line">
+                                <span>Change Returned :</span>
+                                <strong><?php echo number_format((float) ($invoice['change_amount'] ?? ($invoice['tendered_amount'] - $invoiceTotal)), 2); ?></strong>
+                            </div>
+                        <?php endif; ?>
                         <?php if (!empty($receiptVis['show_due']) && $openDue > 0): ?>
                             <div class="retail-total-line">
                                 <span>Due Amount :</span>
@@ -1007,6 +1017,10 @@ $receiptOrder = App::receiptSectionOrder();
                 <div class="row"><span>Due Date</span><strong><?php echo !empty($invoice['credit_due_date']) ? date('M d, Y h:i A', strtotime($invoice['credit_due_date'])) : '-'; ?></strong></div>
             <?php else: ?>
                 <div class="row"><span>Paid</span><strong><?php echo App::money($displayPaid); ?></strong></div>
+                <?php if (!empty($invoice['tendered_amount']) && (float) $invoice['tendered_amount'] > (float) $invoiceTotal): ?>
+                    <div class="row"><span>Cash Received</span><strong><?php echo App::money($invoice['tendered_amount']); ?></strong></div>
+                    <div class="row"><span>Change Returned</span><strong><?php echo App::money($invoice['change_amount'] ?? ($invoice['tendered_amount'] - $invoiceTotal)); ?></strong></div>
+                <?php endif; ?>
                 <div class="row"><span>Remaining</span><strong><?php echo App::money($openDue); ?></strong></div>
             <?php endif; ?>
         </div>
