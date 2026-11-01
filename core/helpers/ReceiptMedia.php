@@ -12,6 +12,7 @@ class ReceiptMedia {
         $data['status'] = strtoupper((string) (($invoice['status'] ?? '') ?: 'paid'));
         $data['payment'] = ucfirst((string) ($invoice['payment_method'] ?? 'cash'));
         $data['channel'] = ucfirst((string) ($invoice['sale_channel'] ?? 'retail'));
+        $data['transaction_type'] = (string) ($invoice['transaction_type'] ?? 'Sale');
         $data['items'] = $items;
         $data['subtotal'] = (float) ($invoice['subtotal'] ?? 0);
         $data['discount'] = (float) ($invoice['discount'] ?? 0);
@@ -231,7 +232,8 @@ class ReceiptMedia {
             foreach ($data['items'] as $item) {
                 $qty = (float) ($item['quantity'] ?? 0);
                 $totalQtySum += $qty;
-                $name = (string) ($item['product_name'] ?? 'Product');
+                $isItemRet = !empty($item['is_return']);
+                $name = ($isItemRet ? '[RET] ' : '') . (string) ($item['product_name'] ?? 'Product');
                 $unitLabel = (string) ($item['product_unit_label'] ?? App::formatProductUnit(1, 'pcs'));
                 $price = (float) ($item['price'] ?? 0);
                 $total = (float) ($item['total'] ?? 0);
@@ -253,7 +255,7 @@ class ReceiptMedia {
                 $numY = $hasUnit ? ($rowTop + 24) : ($rowTop + 17);
                 self::drawTextCenter($im, App::formatQuantity($qty), ($col1 + $col2) / 2, $numY, 10.5, $c['title'], $font);
                 self::drawTextRight($im, number_format($price, 2), $col3 - 6, $numY, 10.5, $c['title'], $font);
-                self::drawTextRight($im, number_format($total, 2), $tblRight - 6, $numY, 11, $c['title'], $bold);
+                self::drawTextRight($im, ($isItemRet ? '-' : '') . number_format($total, 2), $tblRight - 6, $numY, 11, $c['title'], $bold);
 
                 $y += $rowH;
             }

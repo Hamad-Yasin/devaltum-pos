@@ -1963,6 +1963,24 @@ $categoriesList = $categories ?? [];
 
         <!-- 2. Controls & Summary Section (Right Cluster) -->
         <div class="pos-strip-controls-group">
+            <!-- Terminal Mode (Sale / Exchange / Return) -->
+            <div class="pos-strip-block">
+                <span class="pos-strip-label">Terminal Mode</span>
+                <div class="pill-group" id="terminal-mode-pills">
+                    <button type="button" class="pill-btn active" id="terminal-mode-sale" onclick="window.switchTerminalMode('Sale')" title="Standard Sales">
+                        Sale
+                    </button>
+                    <button type="button" class="pill-btn" id="terminal-mode-exchange" onclick="window.switchTerminalMode('Exchange')" title="Exchange Returned Items for New Items">
+                        Exchange
+                    </button>
+                    <button type="button" class="pill-btn" id="terminal-mode-return" onclick="window.switchTerminalMode('Return')" title="Direct Return & Cash Refund">
+                        Return
+                    </button>
+                </div>
+            </div>
+
+            <div class="pos-strip-divider"></div>
+
             <!-- Price Mode -->
             <div class="pos-strip-block">
                 <span class="pos-strip-label">Price Mode</span>
@@ -2317,8 +2335,15 @@ $categoriesList = $categories ?? [];
                     <span id="tax-label-val" style="color:#64748b;">Tax</span>
                     <strong id="tax-val"><?php echo App::money(0); ?></strong>
                 </div>
+                <div class="total-row" id="return-credit-row" style="display:none; color:#d97706;">
+                    <span style="display:flex; align-items:center; gap:4px;">
+                        <span class="material-symbols-rounded" style="font-size:15px; color:#d97706;">assignment_return</span>
+                        <span>Less Return Credit</span>
+                    </span>
+                    <strong id="return-credit-val" style="color:#d97706;">-<?php echo App::money(0); ?></strong>
+                </div>
                 <div class="total-row total-row-main">
-                    <span>Total</span>
+                    <span id="total-main-label">Total</span>
                     <span id="total-val" style="color:#0f6dff;"><?php echo App::money(0); ?></span>
                 </div>
             </div>
@@ -3339,6 +3364,33 @@ $categoriesList = $categories ?? [];
         fetchHeldSalesCount();
     };
 
+    window.toggleItemReturn = (index) => {
+        if (!cart[index]) return;
+        cart[index].is_return = cart[index].is_return ? 0 : 1;
+        renderCart();
+    };
+
+    window.switchTerminalMode = (mode) => {
+        currentTransactionType = mode;
+        ['Sale', 'Exchange', 'Return'].forEach((m) => {
+            const btn = document.getElementById('terminal-mode-' + m.toLowerCase());
+            if (btn) {
+                if (m === mode) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            }
+        });
+
+        if (mode === 'Return') {
+            cart.forEach((item) => { item.is_return = 1; });
+        } else if (mode === 'Sale') {
+            cart.forEach((item) => { item.is_return = 0; });
+        }
+        renderCart();
+    };
+
     const renderCart = () => {
         const table = document.getElementById('cart-table');
         const tbody = document.getElementById('cart-table-body');
@@ -3357,35 +3409,47 @@ $categoriesList = $categories ?? [];
 
         if (tbody) {
             tbody.innerHTML = cart.map((item, index) => {
+                const isReturn = !!item.is_return;
                 const total = roundMoney((item.price * item.quantity) - item.discount);
                 const isWeighted = isWeightedItem(item);
 
                 return `
-                    <tr>
-                        <td style="font-weight:700; color:#94a3b8; font-size:11.5px;">${index + 1}</td>
+                    <tr style="${isReturn ? 'background: #fffdf5;' : ''}">
+                        <td style="font-weight:700; color:${isReturn ? '#d97706' : '#94a3b8'}; font-size:11.5px; ${isReturn ? 'border-left: 3px solid #f59e0b;' : ''}">${index + 1}</td>
                         <td>
-                            <strong style="color:#0f172a;">${escapeHtml(item.name)}</strong>
-                            <div style="font-size:11px; color:#64748b; font-weight:700;">
-                                Unit: ${escapeHtml(item.unit_label || item.unit_type || 'pcs')}
-                                ${isWeighted ? `
-                                    <button type="button" onclick="openPosWeightModal(${index})" title="Calculate Weight & Price" style="border:1px solid #bae6fd; background:#f0f9ff; color:#0284c7; font-size:10.5px; font-weight:800; border-radius:6px; padding:2px 6px; display:inline-flex; align-items:center; gap:2px; cursor:pointer; margin-left:4px;">
-                                        <span class="material-symbols-rounded" style="font-size:13px;">scale</span> Weight
-                                    </button>
-                                ` : ''}
+                            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:4px;">
+                                <div style="min-width:0; flex:1;">
+                                    ${isReturn ? `
+                                        <span style="display:inline-block; font-size:9px; font-weight:900; background:#fef3c7; color:#b45309; border:1px solid #fde68a; padding:1px 5px; border-radius:4px; margin-right:3px; letter-spacing:0.3px;">RETURN</span>
+                                    ` : ''}
+                                    <strong style="color:${isReturn ? '#b45309' : '#0f172a'}; font-size:12px;">${escapeHtml(item.name)}</strong>
+                                    <div style="font-size:10.5px; color:#64748b; font-weight:700; margin-top:1px;">
+                                        Unit: ${escapeHtml(item.unit_label || item.unit_type || 'pcs')}
+                                        ${isWeighted ? `
+                                            <button type="button" onclick="openPosWeightModal(${index})" title="Calculate Weight & Price" style="border:1px solid #bae6fd; background:#f0f9ff; color:#0284c7; font-size:10px; font-weight:800; border-radius:4px; padding:1px 5px; display:inline-flex; align-items:center; gap:2px; cursor:pointer; margin-left:3px;">
+                                                <span class="material-symbols-rounded" style="font-size:12px;">scale</span> Weight
+                                            </button>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                                <button type="button" onclick="window.toggleItemReturn(${index})" title="${isReturn ? 'Switch back to Normal Sale' : 'Mark as Return (Customer returns this item)'}" style="flex-shrink:0; border:1px solid ${isReturn ? '#fde68a' : '#e2e8f0'}; background:${isReturn ? '#fef3c7' : '#ffffff'}; color:${isReturn ? '#b45309' : '#475569'}; font-size:9.5px; font-weight:800; border-radius:4px; padding:2px 5px; cursor:pointer; display:inline-flex; align-items:center; gap:2px;">
+                                    <span class="material-symbols-rounded" style="font-size:12px;">${isReturn ? 'assignment_return' : 'swap_horiz'}</span>
+                                    <span>${isReturn ? 'Returning' : 'Make Return'}</span>
+                                </button>
                             </div>
                         </td>
                         <td style="text-align:right;">
-                            <input class="form-input" type="number" min="0" step="any" inputmode="numeric" value="${item.price}" onchange="updatePrice(${index}, this.value)" style="width:68px; padding:4px 6px; font-size:12px; font-weight:800; text-align:right;">
+                            <input class="form-input" type="number" min="0" step="any" inputmode="numeric" value="${item.price}" onchange="updatePrice(${index}, this.value)" style="width:68px; padding:4px 6px; font-size:12px; font-weight:800; text-align:right; ${isReturn ? 'border-color:#fde68a; background:#fffbeb;' : ''}">
                         </td>
                         <td style="text-align:center;">
                             <div style="display:flex; align-items:center; justify-content:center; gap:3px;">
                                 <button class="qty-btn" type="button" onclick="updateQty(${index}, -1)">-</button>
-                                <input class="qty-input" type="number" min="0.001" step="any" value="${item.quantity}" onchange="setQty(${index}, this.value)">
+                                <input class="qty-input" type="number" min="0.001" step="any" value="${item.quantity}" onchange="setQty(${index}, this.value)" style="${isReturn ? 'border-color:#fde68a;' : ''}">
                                 <button class="qty-btn" type="button" onclick="updateQty(${index}, 1)">+</button>
                             </div>
                         </td>
-                        <td style="text-align:right; font-weight:900; color:#0f172a;">
-                            ${window.appFormatMoney(total)}
+                        <td style="text-align:right; font-weight:900; color:${isReturn ? '#b45309' : '#0f172a'};">
+                            ${isReturn ? '<span style="font-size:9.5px; color:#b45309; display:block; line-height:1;">Credit</span>-' : ''}${window.appFormatMoney(total)}
                             ${item.discount > 0 ? `<div style="font-size:10.5px; color:#be123c;">-${window.appFormatMoney(item.discount)}</div>` : ''}
                         </td>
                         <td style="text-align:center;">
@@ -3403,20 +3467,48 @@ $categoriesList = $categories ?? [];
     };
 
     const updateTotals = () => {
-        let subtotal = 0;
+        let saleSubtotal = 0;
+        let returnSubtotal = 0;
         let totalItemsCount = cart.length;
         let totalQuantitySum = 0;
         let totalCostSum = 0;
 
         cart.forEach((item) => {
-            subtotal += roundMoney((item.price * item.quantity) - item.discount);
+            const itemTotal = roundMoney((item.price * item.quantity) - item.discount);
+            if (item.is_return) {
+                returnSubtotal += itemTotal;
+            } else {
+                saleSubtotal += itemTotal;
+            }
             totalQuantitySum += (parseFloat(item.quantity) || 0);
             totalCostSum += roundMoney((Number(item.cost_price || 0) * (parseFloat(item.quantity) || 0)));
         });
 
-        if (globalDiscount > subtotal) globalDiscount = subtotal;
-        const taxBase = roundMoney(subtotal - globalDiscount);
-        const taxAmount = taxSettings.enabled ? roundMoney(taxBase * (Number(taxSettings.rate || 0) / 100)) : 0;
+        // Auto-synchronize Transaction Mode pills based on active cart content
+        if (returnSubtotal > 0 && saleSubtotal > 0) {
+            currentTransactionType = 'Exchange';
+        } else if (returnSubtotal > 0 && saleSubtotal <= 0) {
+            currentTransactionType = 'Return';
+        } else if (returnSubtotal <= 0) {
+            if (currentTransactionType !== 'Return') {
+                currentTransactionType = 'Sale';
+            }
+        }
+        ['Sale', 'Exchange', 'Return'].forEach((m) => {
+            const btn = document.getElementById('terminal-mode-' + m.toLowerCase());
+            if (btn) {
+                if (m === currentTransactionType) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            }
+        });
+
+        const netBase = roundMoney(saleSubtotal - returnSubtotal);
+        if (globalDiscount > saleSubtotal) globalDiscount = saleSubtotal;
+        const taxBase = roundMoney(netBase - globalDiscount);
+        const taxAmount = (taxSettings.enabled && taxBase > 0) ? roundMoney(taxBase * (Number(taxSettings.rate || 0) / 100)) : 0;
         const total = roundMoney(taxBase + taxAmount);
 
         // Update Top Stats Bar
@@ -3426,23 +3518,76 @@ $categoriesList = $categories ?? [];
 
         if (statItemsCount) statItemsCount.textContent = totalItemsCount;
         if (statTotalQty) statTotalQty.textContent = Number.isInteger(totalQuantitySum) ? String(totalQuantitySum) : String(Math.round(totalQuantitySum * 1000) / 1000).replace(/0+$/, '').replace(/\.$/, '');
-        if (statTotalAmount) statTotalAmount.textContent = window.appFormatMoney(total);
+        if (statTotalAmount) {
+            if (total < 0) {
+                statTotalAmount.textContent = '-' + window.appFormatMoney(Math.abs(total));
+            } else {
+                statTotalAmount.textContent = window.appFormatMoney(total);
+            }
+        }
 
         // Update Cart Summary Panel
         const subtotalVal = document.getElementById('subtotal-val');
+        const returnCreditRow = document.getElementById('return-credit-row');
+        const returnCreditVal = document.getElementById('return-credit-val');
         const discountVal = document.getElementById('discount-val');
         const totalVal = document.getElementById('total-val');
+        const totalMainLabel = document.getElementById('total-main-label');
 
-        if (subtotalVal) subtotalVal.innerText = window.appFormatMoney(subtotal);
+        if (subtotalVal) subtotalVal.innerText = window.appFormatMoney(saleSubtotal);
+        if (returnCreditRow && returnCreditVal) {
+            if (returnSubtotal > 0) {
+                returnCreditRow.style.display = 'flex';
+                returnCreditVal.innerText = '-' + window.appFormatMoney(returnSubtotal);
+            } else {
+                returnCreditRow.style.display = 'none';
+            }
+        }
         if (discountVal) discountVal.innerText = window.appFormatMoney(globalDiscount);
 
         const taxRow = document.getElementById('tax-row');
         if (taxRow) {
-            taxRow.style.display = taxSettings.enabled ? 'flex' : 'none';
+            taxRow.style.display = (taxSettings.enabled && taxAmount > 0) ? 'flex' : 'none';
             document.getElementById('tax-label-val').innerText = `${taxSettings.label || 'Tax'} (${Number(taxSettings.rate || 0)}%)`;
             document.getElementById('tax-val').innerText = window.appFormatMoney(taxAmount);
         }
-        if (totalVal) totalVal.innerText = window.appFormatMoney(total);
+
+        if (totalVal) {
+            if (total < 0) {
+                totalVal.innerText = '-' + window.appFormatMoney(Math.abs(total));
+                totalVal.style.color = '#dc2626';
+            } else {
+                totalVal.innerText = window.appFormatMoney(total);
+                totalVal.style.color = '#0f6dff';
+            }
+        }
+        if (totalMainLabel) {
+            if (total < 0) {
+                totalMainLabel.textContent = 'Refund Due (Store Pays)';
+                totalMainLabel.style.color = '#dc2626';
+            } else if (currentTransactionType === 'Exchange') {
+                totalMainLabel.textContent = 'Net Payable Difference';
+                totalMainLabel.style.color = '#0f172a';
+            } else {
+                totalMainLabel.textContent = 'Total';
+                totalMainLabel.style.color = '#0f172a';
+            }
+        }
+
+        // Update Checkout Button Text
+        const checkoutBtn = document.querySelector('.btn-primary-checkout');
+        if (checkoutBtn) {
+            const btnSpan = checkoutBtn.querySelector('span:nth-child(2)');
+            if (btnSpan) {
+                if (total < 0 || currentTransactionType === 'Return') {
+                    btnSpan.textContent = 'Refund & Print (Rs ' + Math.abs(total) + ')';
+                } else if (currentTransactionType === 'Exchange') {
+                    btnSpan.textContent = 'Exchange & Print';
+                } else {
+                    btnSpan.textContent = 'Checkout & Print';
+                }
+            }
+        }
 
         // Update Tab Badges & Gross Profit Indicators
         const cartBadge = document.getElementById('tab-cart-count-badge');
@@ -3462,7 +3607,7 @@ $categoriesList = $categories ?? [];
             }
         }
 
-        const currentNetRev = Math.max(0, subtotal - globalDiscount);
+        const currentNetRev = Math.max(0, netBase - globalDiscount);
         const currentGrossProfit = roundMoney(currentNetRev - totalCostSum);
         const currentMarginPct = currentNetRev > 0 ? ((currentGrossProfit / currentNetRev) * 100).toFixed(1) : '0.0';
 
@@ -3521,13 +3666,20 @@ $categoriesList = $categories ?? [];
     };
 
     window.calcChangeDue = () => {
-        let subtotal = 0;
+        let saleSubtotal = 0;
+        let returnSubtotal = 0;
         cart.forEach((item) => {
-            subtotal += roundMoney((item.price * item.quantity) - item.discount);
+            const itemTotal = roundMoney((item.price * item.quantity) - item.discount);
+            if (item.is_return) {
+                returnSubtotal += itemTotal;
+            } else {
+                saleSubtotal += itemTotal;
+            }
         });
-        if (globalDiscount > subtotal) globalDiscount = subtotal;
-        const taxBase = roundMoney(subtotal - globalDiscount);
-        const taxAmount = taxSettings.enabled ? roundMoney(taxBase * (Number(taxSettings.rate || 0) / 100)) : 0;
+        const netBase = roundMoney(saleSubtotal - returnSubtotal);
+        if (globalDiscount > saleSubtotal) globalDiscount = saleSubtotal;
+        const taxBase = roundMoney(netBase - globalDiscount);
+        const taxAmount = (taxSettings.enabled && taxBase > 0) ? roundMoney(taxBase * (Number(taxSettings.rate || 0) / 100)) : 0;
         const checkoutTotal = roundMoney(taxBase + taxAmount);
 
         const tenderedInput = document.getElementById('cash-tendered-input');
@@ -3537,11 +3689,36 @@ $categoriesList = $categories ?? [];
         const onlineNetPreview = document.getElementById('pos-online-net-preview');
 
         if (onlineNetPreview) {
-            onlineNetPreview.textContent = '+' + window.appFormatMoney(checkoutTotal);
+            if (checkoutTotal < 0) {
+                onlineNetPreview.textContent = '-' + window.appFormatMoney(Math.abs(checkoutTotal)) + ' (Refund)';
+                onlineNetPreview.style.color = '#dc2626';
+            } else {
+                onlineNetPreview.textContent = '+' + window.appFormatMoney(checkoutTotal);
+                onlineNetPreview.style.color = '#2563eb';
+            }
         }
 
         if (!tenderedInput || !changeDueVal) return;
 
+        // If it's a net refund (customer is receiving cash back from counter drawer):
+        if (checkoutTotal < 0) {
+            const refundDue = Math.abs(checkoutTotal);
+            if (changeBadge) {
+                changeBadge.textContent = 'Refund Payout';
+                changeBadge.style.background = '#fef2f2';
+                changeBadge.style.color = '#dc2626';
+            }
+            tenderedInput.placeholder = 'Refund: ' + refundDue;
+            changeDueVal.textContent = window.appFormatMoney(refundDue);
+            changeDueVal.style.color = '#dc2626';
+            if (drawerNetPreview) {
+                drawerNetPreview.textContent = `-${window.appFormatMoney(refundDue)} (Cash Outflow)`;
+                drawerNetPreview.style.color = '#dc2626';
+            }
+            return;
+        }
+
+        // Standard payment (customer owes money):
         const rawVal = tenderedInput.value.trim();
         if (rawVal === '') {
             if (changeBadge) {
@@ -3551,7 +3728,10 @@ $categoriesList = $categories ?? [];
             }
             changeDueVal.textContent = window.appFormatMoney(0);
             changeDueVal.style.color = '#94a3b8';
-            if (drawerNetPreview) drawerNetPreview.textContent = '+' + window.appFormatMoney(0);
+            if (drawerNetPreview) {
+                drawerNetPreview.textContent = '+' + window.appFormatMoney(0);
+                drawerNetPreview.style.color = '#059669';
+            }
             return;
         }
 
@@ -3566,7 +3746,10 @@ $categoriesList = $categories ?? [];
             }
             changeDueVal.textContent = window.appFormatMoney(diff);
             changeDueVal.style.color = '#16a34a';
-            if (drawerNetPreview) drawerNetPreview.textContent = `+${window.appFormatMoney(checkoutTotal)} (Net Inflow)`;
+            if (drawerNetPreview) {
+                drawerNetPreview.textContent = `+${window.appFormatMoney(checkoutTotal)} (Net Inflow)`;
+                drawerNetPreview.style.color = '#059669';
+            }
         } else if (diff === 0) {
             if (changeBadge) {
                 changeBadge.textContent = 'Exact Paid';
@@ -3575,7 +3758,10 @@ $categoriesList = $categories ?? [];
             }
             changeDueVal.textContent = window.appFormatMoney(0);
             changeDueVal.style.color = '#0284c7';
-            if (drawerNetPreview) drawerNetPreview.textContent = '+' + window.appFormatMoney(checkoutTotal);
+            if (drawerNetPreview) {
+                drawerNetPreview.textContent = '+' + window.appFormatMoney(checkoutTotal);
+                drawerNetPreview.style.color = '#059669';
+            }
         } else {
             if (changeBadge) {
                 changeBadge.textContent = 'Short';
@@ -3584,23 +3770,34 @@ $categoriesList = $categories ?? [];
             }
             changeDueVal.textContent = `Short: -${window.appFormatMoney(Math.abs(diff))}`;
             changeDueVal.style.color = '#e11d48';
-            if (drawerNetPreview) drawerNetPreview.textContent = `+${window.appFormatMoney(tendered)} (Partial)`;
+            if (drawerNetPreview) {
+                drawerNetPreview.textContent = `+${window.appFormatMoney(tendered)} (Partial)`;
+                drawerNetPreview.style.color = '#059669';
+            }
         }
     };
 
     window.setTenderedAmount = (val) => {
         const tenderedInput = document.getElementById('cash-tendered-input');
         if (!tenderedInput) return;
+        let saleSubtotal = 0;
+        let returnSubtotal = 0;
+        cart.forEach((item) => {
+            const itemTotal = roundMoney((item.price * item.quantity) - item.discount);
+            if (item.is_return) {
+                returnSubtotal += itemTotal;
+            } else {
+                saleSubtotal += itemTotal;
+            }
+        });
+        const netBase = roundMoney(saleSubtotal - returnSubtotal);
+        if (globalDiscount > saleSubtotal) globalDiscount = saleSubtotal;
+        const taxBase = roundMoney(netBase - globalDiscount);
+        const taxAmount = (taxSettings.enabled && taxBase > 0) ? roundMoney(taxBase * (Number(taxSettings.rate || 0) / 100)) : 0;
+        const checkoutTotal = roundMoney(taxBase + taxAmount);
+
         if (val === 'exact') {
-            let subtotal = 0;
-            cart.forEach((item) => {
-                subtotal += roundMoney((item.price * item.quantity) - item.discount);
-            });
-            if (globalDiscount > subtotal) globalDiscount = subtotal;
-            const taxBase = roundMoney(subtotal - globalDiscount);
-            const taxAmount = taxSettings.enabled ? roundMoney(taxBase * (Number(taxSettings.rate || 0) / 100)) : 0;
-            const checkoutTotal = roundMoney(taxBase + taxAmount);
-            tenderedInput.value = checkoutTotal > 0 ? checkoutTotal : '';
+            tenderedInput.value = checkoutTotal > 0 ? checkoutTotal : (checkoutTotal < 0 ? Math.abs(checkoutTotal) : '');
         } else {
             tenderedInput.value = val;
         }
@@ -3830,6 +4027,7 @@ $categoriesList = $categories ?? [];
                 price: selectedPrice,
                 quantity: addQty,
                 discount: 0,
+                is_return: currentTransactionType === 'Return' ? 1 : 0,
                 scan_type: product.scan_type || 'single',
                 scan_label: product.scan_label || '',
                 scan_quantity: Math.max(1, Number(product.scan_quantity || addQty || 1)),
@@ -3845,7 +4043,7 @@ $categoriesList = $categories ?? [];
         const item = cart[index];
         const newQty = Math.round((item.quantity + diff) * 1000) / 1000;
 
-        if (newQty > 0 && item.id && currentTransactionType !== 'Return' && currentTransactionType !== 'Refund') {
+        if (newQty > 0 && item.id && !item.is_return && currentTransactionType !== 'Return' && currentTransactionType !== 'Refund') {
             if (newQty > (item.max_stock || 0)) {
                 window.appToast(`Only ${item.max_stock} unit(s) available in stock.`, 'error');
                 return;
@@ -3861,7 +4059,7 @@ $categoriesList = $categories ?? [];
         const qty = parseFloat(value);
         const item = cart[index];
 
-        if (qty > 0 && item.id && currentTransactionType !== 'Return' && currentTransactionType !== 'Refund') {
+        if (qty > 0 && item.id && !item.is_return && currentTransactionType !== 'Return' && currentTransactionType !== 'Refund') {
             if (qty > (item.max_stock || 0)) {
                 window.appToast(`Only ${item.max_stock} unit(s) available in stock.`, 'error');
                 item.quantity = Number(item.max_stock || 0);
@@ -4524,15 +4722,16 @@ $categoriesList = $categories ?? [];
     });
 
     const deductLocalStock = (payload) => {
-        const isReturn = payload.transaction_type === 'Return' || payload.transaction_type === 'Refund';
+        const isReturnTx = payload.transaction_type === 'Return' || payload.transaction_type === 'Refund';
         payload.items.forEach(item => {
             const card = document.querySelector(`.product-card[data-id="${item.id}"]`);
             if (card) {
+                const isItemReturn = item.is_return || isReturnTx;
                 const currentStock = Number(card.dataset.stock || 0);
                 const minStock = Number(card.dataset.minStock || 5);
                 const unitType = String(card.dataset.unitType || 'PCS').trim().toUpperCase() || 'PCS';
                 const qtyDelta = parseFloat(item.quantity) || 0;
-                const newStock = isReturn ? Math.round((currentStock + qtyDelta) * 1000) / 1000 : Math.max(0, Math.round((currentStock - qtyDelta) * 1000) / 1000);
+                const newStock = isItemReturn ? Math.round((currentStock + qtyDelta) * 1000) / 1000 : Math.max(0, Math.round((currentStock - qtyDelta) * 1000) / 1000);
 
                 card.dataset.stock = newStock;
                 const badge = card.querySelector('.stock-mini');
@@ -4643,17 +4842,28 @@ $categoriesList = $categories ?? [];
             discount: roundMoney(item.discount)
         }));
         globalDiscount = roundMoney(globalDiscount);
-        const subtotal = cart.reduce((sum, item) => sum + roundMoney((Number(item.price || 0) * Number(item.quantity || 0)) - Number(item.discount || 0)), 0);
-        const taxBase = roundMoney(subtotal - Number(globalDiscount || 0));
-        const checkoutTax = taxSettings.enabled ? roundMoney(taxBase * (Number(taxSettings.rate || 0) / 100)) : 0;
+        let saleSubtotal = 0;
+        let returnSubtotal = 0;
+        cart.forEach((item) => {
+            const itemTotal = roundMoney((Number(item.price || 0) * Number(item.quantity || 0)) - Number(item.discount || 0));
+            if (item.is_return) {
+                returnSubtotal += itemTotal;
+            } else {
+                saleSubtotal += itemTotal;
+            }
+        });
+        const netSubtotal = roundMoney(saleSubtotal - returnSubtotal);
+        if (globalDiscount > saleSubtotal) globalDiscount = saleSubtotal;
+        const taxBase = roundMoney(netSubtotal - Number(globalDiscount || 0));
+        const checkoutTax = (taxSettings.enabled && taxBase > 0) ? roundMoney(taxBase * (Number(taxSettings.rate || 0) / 100)) : 0;
         const checkoutTotal = roundMoney(taxBase + checkoutTax);
         const creditInitialPaymentInput = document.getElementById('credit-initial-payment');
         const creditInitialPaymentRaw = Number(creditInitialPaymentInput?.value || 0);
         const creditInitialPayment = Math.max(0, Math.min(checkoutTotal, isNaN(creditInitialPaymentRaw) ? 0 : creditInitialPaymentRaw));
         const tenderedInput = document.getElementById('cash-tendered-input');
 
-        // CASH TENDERED VALIDATION: Must be provided and cover the bill total before printing or completing sale
-        if (currentPaymentMethod === 'cash' && status !== 'draft') {
+        // CASH TENDERED VALIDATION: Must be provided and cover the bill total when customer owes money (> 0)
+        if (currentPaymentMethod === 'cash' && status !== 'draft' && checkoutTotal > 0) {
             const rawVal = tenderedInput ? tenderedInput.value.trim() : '';
             const numTendered = parseFloat(rawVal);
             if (!tenderedInput || rawVal === '' || isNaN(numTendered) || numTendered <= 0) {
@@ -4687,9 +4897,19 @@ $categoriesList = $categories ?? [];
         }
 
         const onlineSelect = document.getElementById('pos-online-account-select');
-        const rawTendered = tenderedInput ? parseFloat(tenderedInput.value) : 0;
-        const tenderedVal = currentPaymentMethod === 'cash' ? rawTendered : checkoutTotal;
-        const changeVal = currentPaymentMethod === 'cash' ? Math.max(0, roundMoney(tenderedVal - checkoutTotal)) : 0;
+        let tenderedVal = 0;
+        let changeVal = 0;
+        if (checkoutTotal < 0) {
+            tenderedVal = Math.abs(checkoutTotal);
+            changeVal = 0;
+        } else if (currentPaymentMethod === 'cash') {
+            const rawTendered = tenderedInput ? parseFloat(tenderedInput.value) : 0;
+            tenderedVal = isNaN(rawTendered) || rawTendered <= 0 ? checkoutTotal : rawTendered;
+            changeVal = Math.max(0, roundMoney(tenderedVal - checkoutTotal));
+        } else {
+            tenderedVal = checkoutTotal;
+            changeVal = 0;
+        }
         const paymentAccountId = currentPaymentMethod === 'online' && onlineSelect ? (onlineSelect.value || null) : null;
 
         const payload = {
@@ -4744,18 +4964,18 @@ $categoriesList = $categories ?? [];
                     } else {
                         window.open(scopeUrl(`${baseUrl}/pos/receipt/` + data.invoice_id), '_blank');
                     }
-                    if (changeVal > 0) {
-                        window.appToast(`Sale completed! Return Change: ${window.appFormatMoney(changeVal)}`, 'success');
-                    } else {
-                        window.appToast('Sale completed & sent to printer directly!', 'success');
-                    }
                 } else {
                     window.open(scopeUrl(`${baseUrl}/pos/receipt/` + data.invoice_id), '_blank');
-                    if (changeVal > 0) {
-                        window.appToast(`Sale completed! Return Change: ${window.appFormatMoney(changeVal)}`, 'success');
-                    } else {
-                        window.appToast('Sale completed successfully!', 'success');
-                    }
+                }
+
+                if (checkoutTotal < 0 || currentTransactionType === 'Return') {
+                    window.appToast(`Return processed! Cash Refund Paid: ${window.appFormatMoney(Math.abs(checkoutTotal))}`, 'success');
+                } else if (currentTransactionType === 'Exchange') {
+                    window.appToast(`Exchange completed! ${changeVal > 0 ? 'Return Change: ' + window.appFormatMoney(changeVal) : ''}`, 'success');
+                } else if (changeVal > 0) {
+                    window.appToast(`Sale completed! Return Change: ${window.appFormatMoney(changeVal)}`, 'success');
+                } else {
+                    window.appToast('Sale completed successfully!', 'success');
                 }
             }
 

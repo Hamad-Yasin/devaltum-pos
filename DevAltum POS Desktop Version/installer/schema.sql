@@ -1,4 +1,4 @@
-﻿-- MySQL dump 10.13  Distrib 8.4.3, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.4.3, for Win64 (x86_64)
 --
 -- Host: localhost    Database: talha_pos
 -- ------------------------------------------------------
@@ -311,6 +311,7 @@ CREATE TABLE `invoice_items` (
   `product_name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `model_number` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `price_tier` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'retail',
+  `is_return` tinyint(1) NOT NULL DEFAULT '0',
   `quantity` decimal(12,3) NOT NULL DEFAULT '1.000',
   `price` decimal(12,2) NOT NULL DEFAULT '0.00',
   `cost_price` decimal(12,2) DEFAULT '0.00',

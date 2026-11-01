@@ -367,6 +367,11 @@ class PosController extends Controller {
                 $connection->prepare("UPDATE invoices SET customer_address_snapshot = ? WHERE id = ?")->execute([$customerAddress, $invoiceId]);
             }
 
+            $hasInvoiceItemIsReturn = $this->hasColumn($connection, 'invoice_items', 'is_return');
+            $saleSubtotal = 0;
+            $returnSubtotal = 0;
+            $itemRowsToProcess = [];
+
             foreach ($data['items'] as $item) {
                 $itemName = trim($item['name'] ?? '');
                 if ($itemName === '') {
@@ -378,6 +383,7 @@ class PosController extends Controller {
                 $itemDiscount = max(0, (float) ($item['discount'] ?? 0));
                 $modelNumber = trim($item['model_number'] ?? '');
                 $productId = empty($item['id']) ? null : (int) $item['id'];
+                $isItemReturn = (!empty($item['is_return']) || $transactionType === 'Return') ? 1 : 0;
 
                 $itemCost = 0.0;
                 if (!$productId) {
@@ -395,54 +401,120 @@ class PosController extends Controller {
                 }
 
                 $itemSubtotal = round(($itemPrice * $itemQty) - $itemDiscount, 2);
-                $subtotal += $itemSubtotal;
+                if ($isItemReturn) {
+                    $returnSubtotal += $itemSubtotal;
+                } else {
+                    $saleSubtotal += $itemSubtotal;
+                }
 
-                $itemStmt = $connection->prepare("
-                    INSERT INTO invoice_items (store_id, invoice_id, product_id, product_name, model_number, quantity, price, price_tier, discount, total, cost_price)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ");
-                $itemStmt->execute([
-                    $storeId,
-                    $invoiceId,
-                    $productId,
-                    $itemName,
-                    $modelNumber ?: null,
-                    $itemQty,
-                    $itemPrice,
-                    $saleChannel,
-                    $itemDiscount,
-                    $itemSubtotal,
-                    $itemCost
-                ]);
+                $itemRowsToProcess[] = [
+                    'product_id' => $productId,
+                    'name' => $itemName,
+                    'model_number' => $modelNumber ?: null,
+                    'quantity' => $itemQty,
+                    'price' => $itemPrice,
+                    'discount' => $itemDiscount,
+                    'total' => $itemSubtotal,
+                    'cost_price' => $itemCost,
+                    'is_return' => $isItemReturn
+                ];
+            }
 
-                if ($status === 'paid') {
-                    if (in_array($transactionType, ['Sale', 'Exchange'], true)) {
-                        $connection->prepare("UPDATE products SET stock = GREATEST(stock - ?, 0) WHERE id = ? AND store_id = ?")->execute([$itemQty, $productId, $storeId]);
-                    } elseif (in_array($transactionType, ['Return', 'Refund'], true)) {
-                        $connection->prepare("UPDATE products SET stock = stock + ? WHERE id = ? AND store_id = ?")->execute([$itemQty, $productId, $storeId]);
+            // Auto-classify or retain transaction type
+            if ($returnSubtotal > 0 && $saleSubtotal > 0) {
+                $transactionType = 'Exchange';
+            } elseif ($returnSubtotal > 0 && $saleSubtotal <= 0) {
+                $transactionType = 'Return';
+            }
+
+            foreach ($itemRowsToProcess as $row) {
+                if ($hasInvoiceItemIsReturn) {
+                    $itemStmt = $connection->prepare("
+                        INSERT INTO invoice_items (store_id, invoice_id, product_id, product_name, model_number, quantity, price, price_tier, is_return, discount, total, cost_price)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    $itemStmt->execute([
+                        $storeId,
+                        $invoiceId,
+                        $row['product_id'],
+                        $row['name'],
+                        $row['model_number'],
+                        $row['quantity'],
+                        $row['price'],
+                        $saleChannel,
+                        $row['is_return'],
+                        $row['discount'],
+                        $row['total'],
+                        $row['cost_price']
+                    ]);
+                } else {
+                    $itemStmt = $connection->prepare("
+                        INSERT INTO invoice_items (store_id, invoice_id, product_id, product_name, model_number, quantity, price, price_tier, discount, total, cost_price)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    $itemStmt->execute([
+                        $storeId,
+                        $invoiceId,
+                        $row['product_id'],
+                        $row['name'],
+                        $row['model_number'],
+                        $row['quantity'],
+                        $row['price'],
+                        $saleChannel,
+                        $row['discount'],
+                        $row['total'],
+                        $row['cost_price']
+                    ]);
+                }
+
+                if ($status === 'paid' && $row['product_id']) {
+                    if ($row['is_return']) {
+                        // Product Return / Exchange Return: Item added back to product inventory!
+                        $connection->prepare("UPDATE products SET stock = stock + ? WHERE id = ? AND store_id = ?")->execute([$row['quantity'], $row['product_id'], $storeId]);
+                    } else {
+                        // Product Sale: Stock deducted from inventory
+                        $connection->prepare("UPDATE products SET stock = GREATEST(stock - ?, 0) WHERE id = ? AND store_id = ?")->execute([$row['quantity'], $row['product_id'], $storeId]);
                     }
                 }
             }
 
-            $taxBase = max(0, $subtotal - $mainDiscount);
-            $taxAmount = $taxSettings['enabled'] ? round($taxBase * ($taxSettings['rate'] / 100)) : 0;
-            $finalTotal = max(0, $taxBase + $taxAmount);
+            $subtotal = round($saleSubtotal - $returnSubtotal, 2);
+            $taxBase = round($subtotal - $mainDiscount, 2);
+            $taxAmount = ($taxSettings['enabled'] && $taxBase > 0) ? round($taxBase * ($taxSettings['rate'] / 100)) : 0;
+            $finalTotal = round($taxBase + $taxAmount, 2);
+
             if ($status === 'draft') {
                 $paidAmount = 0;
                 $tenderedAmount = 0;
                 $changeAmount = 0;
+                $balanceDue = max(0, $finalTotal);
+                $isCreditSettled = 0;
+            } elseif ($transactionType === 'Return' || $finalTotal < 0) {
+                // Refund transaction: Cash paid OUT to customer
+                $refundDue = abs($finalTotal);
+                $paidAmount = $refundDue;
+                $tenderedAmount = $refundDue;
+                $changeAmount = 0;
+                $balanceDue = 0;
+                $isCreditSettled = 1;
             } elseif ($paymentMethod === 'credit') {
                 $paidAmount = min($finalTotal, $creditInitialPayment);
                 $tenderedAmount = $paidAmount;
                 $changeAmount = 0;
+                $balanceDue = max(0, $finalTotal - $paidAmount);
+                $isCreditSettled = $balanceDue <= 0 ? 1 : 0;
             } elseif ($paymentMethod === 'cash') {
                 $paidAmount = $finalTotal;
                 $tenderedAmount = ($tenderedAmountRaw !== null && $tenderedAmountRaw > 0) ? $tenderedAmountRaw : $finalTotal;
-                $changeAmount = max(0, $tenderedAmount - $finalTotal);
+                $changeAmount = max(0, round($tenderedAmount - $finalTotal, 2));
+                $balanceDue = 0;
+                $isCreditSettled = 1;
             } else {
                 $paidAmount = $finalTotal;
                 $tenderedAmount = $finalTotal;
                 $changeAmount = 0;
+                $balanceDue = 0;
+                $isCreditSettled = 1;
             }
             $balanceDue = max(0, $finalTotal - $paidAmount);
             $isCreditSettled = $balanceDue <= 0 ? 1 : 0;
@@ -489,7 +561,7 @@ class PosController extends Controller {
                 if (in_array($transactionType, ['Sale', 'Exchange'], true)) {
                     $connection->prepare("UPDATE customers SET total_spending = total_spending + ?, loyalty_points = GREATEST(0, loyalty_points - ?) + ? WHERE id = ? AND store_id = ?")->execute([$finalTotal, $pointsRedeemed, $pointsEarned, $customerId, $storeId]);
                 } elseif (in_array($transactionType, ['Return', 'Refund'], true)) {
-                    $connection->prepare("UPDATE customers SET total_spending = GREATEST(total_spending - ?, 0), loyalty_points = GREATEST(0, loyalty_points - ?) WHERE id = ? AND store_id = ?")->execute([$finalTotal, $pointsEarned, $customerId, $storeId]);
+                    $connection->prepare("UPDATE customers SET total_spending = GREATEST(total_spending - ?, 0), loyalty_points = GREATEST(0, loyalty_points - ?) WHERE id = ? AND store_id = ?")->execute([abs($finalTotal), $pointsEarned, $customerId, $storeId]);
                 }
             }
 
@@ -497,7 +569,7 @@ class PosController extends Controller {
             if ($paymentMethod === 'cash' && $changeAmount > 0) {
                 $detail .= " (Tendered: " . App::money($tenderedAmount) . ", Change: " . App::money($changeAmount) . ")";
             }
-            $connection->prepare("INSERT INTO activity_logs (store_id, user_id, action, details) VALUES (?, ?, ?, ?)")->execute([$storeId, Auth::id(), 'Sale', $detail]);
+            $connection->prepare("INSERT INTO activity_logs (store_id, user_id, action, details) VALUES (?, ?, ?, ?)")->execute([$storeId, Auth::id(), $transactionType, $detail]);
 
             $connection->commit();
             $freshBalances = App::getStoreDrawerAndDigitalBalance($storeId);
@@ -913,6 +985,13 @@ class PosController extends Controller {
             if (!$this->hasColumn($connection, 'invoices', 'payment_account_id')) {
                 $connection->exec("ALTER TABLE invoices ADD COLUMN payment_account_id INT NULL AFTER payment_method");
                 $this->columnCache['invoices.payment_account_id'] = true;
+            }
+        } catch (Exception $e) {}
+
+        try {
+            if (!$this->hasColumn($connection, 'invoice_items', 'is_return')) {
+                $connection->exec("ALTER TABLE invoice_items ADD COLUMN is_return TINYINT(1) NOT NULL DEFAULT 0 AFTER price_tier");
+                $this->columnCache['invoice_items.is_return'] = true;
             }
         } catch (Exception $e) {}
     }

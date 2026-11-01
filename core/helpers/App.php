@@ -2478,9 +2478,16 @@ class App {
             }
             $cashAccId = $defaultCashAcc ? (int)$defaultCashAcc['id'] : 0;
 
-            // Sales breakdown
-            $cashSalesSum = (float) (($db->fetch("SELECT SUM(paid_amount) AS sum FROM invoices WHERE store_id = ? AND status = 'paid' AND payment_method = 'cash'", [$storeId])['sum'] ?? 0));
-            $onlineSalesSum = (float) (($db->fetch("SELECT SUM(paid_amount) AS sum FROM invoices WHERE store_id = ? AND status = 'paid' AND LOWER(payment_method) IN ('online', 'card', 'bank', 'jazzcash', 'easypaisa')", [$storeId])['sum'] ?? 0));
+            // Sales breakdown (accounting for Sales, Exchanges, and Returns/Refunds)
+            $cashSalesDirect = (float) (($db->fetch("SELECT SUM(paid_amount) AS sum FROM invoices WHERE store_id = ? AND status = 'paid' AND transaction_type = 'Sale' AND payment_method = 'cash'", [$storeId])['sum'] ?? 0));
+            $cashExchangeSum = (float) (($db->fetch("SELECT SUM(CASE WHEN total >= 0 THEN paid_amount ELSE -paid_amount END) AS sum FROM invoices WHERE store_id = ? AND status = 'paid' AND transaction_type = 'Exchange' AND payment_method = 'cash'", [$storeId])['sum'] ?? 0));
+            $cashRefundsGiven = (float) (($db->fetch("SELECT SUM(paid_amount) AS sum FROM invoices WHERE store_id = ? AND status = 'paid' AND transaction_type IN ('Return', 'Refund') AND payment_method = 'cash'", [$storeId])['sum'] ?? 0));
+            $cashSalesSum = $cashSalesDirect + $cashExchangeSum - $cashRefundsGiven;
+
+            $onlineSalesDirect = (float) (($db->fetch("SELECT SUM(paid_amount) AS sum FROM invoices WHERE store_id = ? AND status = 'paid' AND transaction_type = 'Sale' AND LOWER(payment_method) IN ('online', 'card', 'bank', 'jazzcash', 'easypaisa')", [$storeId])['sum'] ?? 0));
+            $onlineExchangeSum = (float) (($db->fetch("SELECT SUM(CASE WHEN total >= 0 THEN paid_amount ELSE -paid_amount END) AS sum FROM invoices WHERE store_id = ? AND status = 'paid' AND transaction_type = 'Exchange' AND LOWER(payment_method) IN ('online', 'card', 'bank', 'jazzcash', 'easypaisa')", [$storeId])['sum'] ?? 0));
+            $onlineRefundsGiven = (float) (($db->fetch("SELECT SUM(paid_amount) AS sum FROM invoices WHERE store_id = ? AND status = 'paid' AND transaction_type IN ('Return', 'Refund') AND LOWER(payment_method) IN ('online', 'card', 'bank', 'jazzcash', 'easypaisa')", [$storeId])['sum'] ?? 0));
+            $onlineSalesSum = $onlineSalesDirect + $onlineExchangeSum - $onlineRefundsGiven;
 
             // Credit recoveries breakdown
             $cashCreditRecv = (float) (($db->fetch("SELECT SUM(amount) AS sum FROM credit_payments WHERE store_id = ? AND payment_method = 'cash'", [$storeId])['sum'] ?? 0));

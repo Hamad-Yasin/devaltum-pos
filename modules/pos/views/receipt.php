@@ -93,9 +93,32 @@ if (!in_array($rawStatus, ['paid', 'unpaid', 'draft'], true)) {
 $receiptStatus = strtoupper($rawStatus);
 $displayPaid = max(0, $invoiceTotal - $openDue);
 $totalItems = count($items);
+$txType = (string) ($invoice['transaction_type'] ?? 'Sale');
+$hasReturnItems = false;
+$sumPurchased = 0;
+$sumReturned = 0;
+foreach ($items as $it) {
+    if (!empty($it['is_return'])) {
+        $hasReturnItems = true;
+        $sumReturned += (float) ($it['total'] ?? 0);
+    } else {
+        $sumPurchased += (float) ($it['total'] ?? 0);
+    }
+}
+$isReturn = in_array($txType, ['Return', 'Refund'], true) || ($hasReturnItems && $sumPurchased <= 0);
+$isExchange = ($txType === 'Exchange') || ($hasReturnItems && $sumPurchased > 0);
+
 $receiptVis = App::receiptVisibility();
 $receiptLbl = App::receiptLabels();
 $receiptOrder = App::receiptSectionOrder();
+
+if ($isExchange) {
+    $receiptTitle = 'EXCHANGE INVOICE';
+} elseif ($isReturn) {
+    $receiptTitle = 'RETURN & REFUND VOUCHER';
+} else {
+    $receiptTitle = !empty($receiptLbl['title']) ? $receiptLbl['title'] : 'INVOICE';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -734,9 +757,9 @@ $receiptOrder = App::receiptSectionOrder();
 
                 <?php elseif ($secKey === 'ribbon'): ?>
                     <?php if (!empty($receiptVis['show_ribbon'])): ?>
-                        <div class="retail-ribbon-bar">
+                        <div class="retail-ribbon-bar" style="<?php echo $isReturn ? 'background:#dc2626; color:#fff;' : ($isExchange ? 'background:#0f6dff; color:#fff;' : ''); ?>">
                             <span><?php echo date('g:i:sA', strtotime($invoice['created_at'])); ?></span>
-                            <span class="ribbon-center"><?php echo Security::escape($receiptLbl['title'] ?: 'INVOICE'); ?></span>
+                            <span class="ribbon-center" style="font-weight:900; letter-spacing:0.5px;"><?php echo Security::escape($receiptTitle); ?></span>
                             <span><?php echo date('d/m/Y', strtotime($invoice['created_at'])); ?></span>
                         </div>
                     <?php endif; ?>
@@ -775,8 +798,14 @@ $receiptOrder = App::receiptSectionOrder();
                         </thead>
                         <tbody>
                             <?php foreach ($items as $item): ?>
-                                <tr>
-                                    <td><?php echo Security::escape($item['product_name']); ?></td>
+                                <?php $itemIsReturn = !empty($item['is_return']); ?>
+                                <tr style="<?php echo $itemIsReturn ? 'background:#fffdf5;' : ''; ?>">
+                                    <td>
+                                        <?php if ($itemIsReturn): ?>
+                                            <span style="font-size:9px; font-weight:900; background:#fef3c7; color:#b45309; border:1px solid #fde68a; padding:1px 4px; border-radius:3px; margin-right:3px;">[RETURN]</span>
+                                        <?php endif; ?>
+                                        <?php echo Security::escape($item['product_name']); ?>
+                                    </td>
                                     <td class="col-price">
                                         <?php echo number_format((float) $item['price'], 2); ?>
                                         <?php if (!empty($receiptVis['show_unit_label'])): ?>
@@ -784,7 +813,9 @@ $receiptOrder = App::receiptSectionOrder();
                                         <?php endif; ?>
                                     </td>
                                     <td class="col-qty"><?php echo number_format((float) $item['quantity'], 2); ?></td>
-                                    <td class="col-amount"><?php echo number_format((float) $item['total'], 2); ?></td>
+                                    <td class="col-amount" style="<?php echo $itemIsReturn ? 'color:#b45309; font-weight:800;' : ''; ?>">
+                                        <?php echo ($itemIsReturn ? '-' : '') . number_format((float) $item['total'], 2); ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -799,7 +830,25 @@ $receiptOrder = App::receiptSectionOrder();
 
                 <?php elseif ($secKey === 'totals'): ?>
                     <div class="retail-totals-container">
-                        <?php if (!empty($receiptVis['show_subtotal'])): ?>
+                        <?php if ($isExchange): ?>
+                            <div class="retail-total-line">
+                                <span>Purchased Items:</span>
+                                <strong><?php echo number_format($sumPurchased, 2); ?></strong>
+                            </div>
+                            <div class="retail-total-line" style="color:#b45309;">
+                                <span>Less Return Credit:</span>
+                                <strong>-<?php echo number_format($sumReturned, 2); ?></strong>
+                            </div>
+                            <div class="retail-total-line" style="border-top:1px dashed #cbd5e1; padding-top:4px;">
+                                <span>Net Difference:</span>
+                                <strong><?php echo number_format((float) ($invoice['subtotal'] ?? $invoiceTotal), 2); ?></strong>
+                            </div>
+                        <?php elseif ($isReturn): ?>
+                            <div class="retail-total-line" style="color:#b45309;">
+                                <span>Returned Items Value:</span>
+                                <strong><?php echo number_format($sumReturned ?: abs((float) ($invoice['subtotal'] ?? $invoiceTotal)), 2); ?></strong>
+                            </div>
+                        <?php elseif (!empty($receiptVis['show_subtotal'])): ?>
                             <div class="retail-total-line">
                                 <span>Sub Total Amount:</span>
                                 <strong><?php echo number_format((float) ($invoice['subtotal'] ?? $invoiceTotal), 2); ?></strong>
@@ -817,21 +866,28 @@ $receiptOrder = App::receiptSectionOrder();
                                 <strong><?php echo number_format($taxAmount, 2); ?></strong>
                             </div>
                         <?php endif; ?>
-                        <?php if (!empty($receiptVis['show_paid'])): ?>
-                            <div class="retail-total-line">
-                                <span>Paid Amount :</span>
-                                <strong><?php echo number_format((float) $displayPaid, 2); ?></strong>
+                        <?php if ($invoiceTotal < 0 || $isReturn): ?>
+                            <div class="retail-total-line" style="color:#dc2626;">
+                                <span>Cash Refund Paid Out:</span>
+                                <strong><?php echo number_format(abs($invoiceTotal), 2); ?></strong>
                             </div>
-                        <?php endif; ?>
-                        <?php if (!empty($invoice['tendered_amount']) && (float) $invoice['tendered_amount'] > (float) $invoiceTotal): ?>
-                            <div class="retail-total-line">
-                                <span>Cash Received :</span>
-                                <strong><?php echo number_format((float) $invoice['tendered_amount'], 2); ?></strong>
-                            </div>
-                            <div class="retail-total-line">
-                                <span>Change Returned :</span>
-                                <strong><?php echo number_format((float) ($invoice['change_amount'] ?? ($invoice['tendered_amount'] - $invoiceTotal)), 2); ?></strong>
-                            </div>
+                        <?php else: ?>
+                            <?php if (!empty($receiptVis['show_paid'])): ?>
+                                <div class="retail-total-line">
+                                    <span>Paid Amount :</span>
+                                    <strong><?php echo number_format((float) $displayPaid, 2); ?></strong>
+                                </div>
+                            <?php endif; ?>
+                            <?php if (!empty($invoice['tendered_amount']) && (float) $invoice['tendered_amount'] > (float) $invoiceTotal): ?>
+                                <div class="retail-total-line">
+                                    <span>Cash Received :</span>
+                                    <strong><?php echo number_format((float) $invoice['tendered_amount'], 2); ?></strong>
+                                </div>
+                                <div class="retail-total-line">
+                                    <span>Change Returned :</span>
+                                    <strong><?php echo number_format((float) ($invoice['change_amount'] ?? ($invoice['tendered_amount'] - $invoiceTotal)), 2); ?></strong>
+                                </div>
+                            <?php endif; ?>
                         <?php endif; ?>
                         <?php if (!empty($receiptVis['show_due']) && $openDue > 0): ?>
                             <div class="retail-total-line">
@@ -843,9 +899,9 @@ $receiptOrder = App::receiptSectionOrder();
 
                 <?php elseif ($secKey === 'net_payable'): ?>
                     <?php if (!empty($receiptVis['show_net_payable'])): ?>
-                        <div class="retail-net-payable-box">
-                            <span><?php echo Security::escape($receiptLbl['net_payable_label'] ?: 'Net Payable:'); ?></span>
-                            <span><?php echo number_format((float) $invoiceTotal, 2); ?></span>
+                        <div class="retail-net-payable-box" style="<?php echo ($invoiceTotal < 0 || $isReturn) ? 'background:#fef2f2; border-color:#fca5a5; color:#dc2626;' : ''; ?>">
+                            <span><?php echo ($invoiceTotal < 0 || $isReturn) ? 'Cash Refund Due:' : ($isExchange ? 'Net Amount Payable:' : Security::escape($receiptLbl['net_payable_label'] ?: 'Net Payable:')); ?></span>
+                            <span><?php echo ($invoiceTotal < 0 || $isReturn ? '-' : '') . number_format(abs($invoiceTotal), 2); ?></span>
                         </div>
                     <?php endif; ?>
 
@@ -928,7 +984,7 @@ $receiptOrder = App::receiptSectionOrder();
                 </div>
             </div>
             <div class="invoice-box">
-                <h4>INVOICE</h4>
+                <h4><?php echo Security::escape($receiptTitle); ?></h4>
                 <div class="muted"><strong>No:</strong> <?php echo Security::escape($invoice['custom_id']); ?></div>
                 <div class="muted"><strong>Date:</strong> <?php echo date('M d, Y h:i A', strtotime($invoice['created_at'])); ?></div>
             </div>
@@ -961,16 +1017,24 @@ $receiptOrder = App::receiptSectionOrder();
                 </thead>
                 <tbody>
                     <?php foreach ($items as $item): ?>
-                        <tr>
+                        <?php $itemIsReturn = !empty($item['is_return']); ?>
+                        <tr style="<?php echo $itemIsReturn ? 'background:#fffdf5;' : ''; ?>">
                             <td>
                                 <div class="receipt-item-name">
-                                    <span class="receipt-item-title"><?php echo Security::escape($item['product_name']); ?></span>
+                                    <span class="receipt-item-title">
+                                        <?php if ($itemIsReturn): ?>
+                                            <strong style="color:#b45309; font-size:9.5px; background:#fef3c7; border:1px solid #fde68a; padding:1px 4px; border-radius:3px; margin-right:3px;">[RETURN]</strong>
+                                        <?php endif; ?>
+                                        <?php echo Security::escape($item['product_name']); ?>
+                                    </span>
                                     <span class="receipt-item-unit"><?php echo Security::escape($item['product_unit_label'] ?? App::formatProductUnit(1, 'pcs')); ?></span>
                                 </div>
                             </td>
                             <td><?php echo Security::escape(App::formatQuantity($item['quantity'])); ?></td>
                             <td><?php echo App::money($item['price']); ?></td>
-                            <td><?php echo App::money($item['total']); ?></td>
+                            <td style="<?php echo $itemIsReturn ? 'color:#b45309; font-weight:800;' : ''; ?>">
+                                <?php echo ($itemIsReturn ? '-' : '') . App::money($item['total']); ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -978,7 +1042,15 @@ $receiptOrder = App::receiptSectionOrder();
         </div>
 
         <div class="block totals">
-            <div class="row"><span>Subtotal</span><strong><?php echo App::money($invoice['subtotal']); ?></strong></div>
+            <?php if ($isExchange): ?>
+                <div class="row"><span>Purchased Items Total</span><strong><?php echo App::money($sumPurchased); ?></strong></div>
+                <div class="row" style="color:#b45309;"><span>Less Return Credit</span><strong>-<?php echo App::money($sumReturned); ?></strong></div>
+                <div class="row" style="border-top:1px dashed #cbd5e1; padding-top:4px;"><span>Net Difference</span><strong><?php echo App::money($invoice['subtotal']); ?></strong></div>
+            <?php elseif ($isReturn): ?>
+                <div class="row" style="color:#b45309;"><span>Returned Items Total</span><strong><?php echo App::money($sumReturned ?: abs($invoice['subtotal'])); ?></strong></div>
+            <?php else: ?>
+                <div class="row"><span>Subtotal</span><strong><?php echo App::money($invoice['subtotal']); ?></strong></div>
+            <?php endif; ?>
             <div class="row"><span>Discount</span><strong><?php echo App::money($invoice['discount']); ?></strong></div>
             <?php if ($taxAmount > 0): ?>
                 <div class="row"><span><?php echo Security::escape($taxLabel ?: 'Tax'); ?> (<?php echo rtrim(rtrim(number_format($taxRate, 3), '0'), '.'); ?>%)</span><strong><?php echo App::money($taxAmount); ?></strong></div>
@@ -998,19 +1070,27 @@ $receiptOrder = App::receiptSectionOrder();
                     <?php endif; ?>
                 </div>
             <?php endif; ?>
-            <div class="row grand"><span>Total</span><span><?php echo App::money($invoice['total']); ?></span></div>
+            <?php if ($invoiceTotal < 0 || $isReturn): ?>
+                <div class="row grand" style="color:#dc2626;"><span>Cash Refund Paid Out</span><span>-<?php echo App::money(abs($invoiceTotal)); ?></span></div>
+            <?php else: ?>
+                <div class="row grand"><span><?php echo $isExchange ? 'Net Total Payable' : 'Total'; ?></span><span><?php echo App::money($invoiceTotal); ?></span></div>
+            <?php endif; ?>
             <div class="row" style="padding-top:8px; margin-top:8px; border-top:1px dashed #d1d5db;"><span>Total Items</span><strong><?php echo (int) $totalItems; ?></strong></div>
             <?php if ($isCredit): ?>
                 <div class="row"><span>Paid</span><strong><?php echo App::money($displayPaid); ?></strong></div>
                 <div class="row"><span>Remaining Balance</span><strong><?php echo App::money($openDue); ?></strong></div>
                 <div class="row"><span>Due Date</span><strong><?php echo !empty($invoice['credit_due_date']) ? date('M d, Y h:i A', strtotime($invoice['credit_due_date'])) : '-'; ?></strong></div>
             <?php else: ?>
-                <div class="row"><span>Paid</span><strong><?php echo App::money($displayPaid); ?></strong></div>
-                <?php if (!empty($invoice['tendered_amount']) && (float) $invoice['tendered_amount'] > (float) $invoiceTotal): ?>
-                    <div class="row"><span>Cash Received</span><strong><?php echo App::money($invoice['tendered_amount']); ?></strong></div>
-                    <div class="row"><span>Change Returned</span><strong><?php echo App::money($invoice['change_amount'] ?? ($invoice['tendered_amount'] - $invoiceTotal)); ?></strong></div>
+                <?php if ($invoiceTotal < 0 || $isReturn): ?>
+                    <div class="row"><span>Cash Refund to Customer</span><strong style="color:#dc2626;"><?php echo App::money(abs($invoiceTotal)); ?></strong></div>
+                <?php else: ?>
+                    <div class="row"><span>Paid</span><strong><?php echo App::money($displayPaid); ?></strong></div>
+                    <?php if (!empty($invoice['tendered_amount']) && (float) $invoice['tendered_amount'] > (float) $invoiceTotal): ?>
+                        <div class="row"><span>Cash Received</span><strong><?php echo App::money($invoice['tendered_amount']); ?></strong></div>
+                        <div class="row"><span>Change Returned</span><strong><?php echo App::money($invoice['change_amount'] ?? ($invoice['tendered_amount'] - $invoiceTotal)); ?></strong></div>
+                    <?php endif; ?>
+                    <div class="row"><span>Remaining</span><strong><?php echo App::money($openDue); ?></strong></div>
                 <?php endif; ?>
-                <div class="row"><span>Remaining</span><strong><?php echo App::money($openDue); ?></strong></div>
             <?php endif; ?>
         </div>
 
