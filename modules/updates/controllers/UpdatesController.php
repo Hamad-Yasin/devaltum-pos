@@ -89,7 +89,7 @@ class UpdatesController extends Controller {
     }
 
     public function software() {
-        $currentVersion = '1.1.7';
+        $currentVersion = '1.1.8';
         $highlights = [];
         $versionConfig = ROOT_PATH . '/config/version.php';
         if (file_exists($versionConfig)) {

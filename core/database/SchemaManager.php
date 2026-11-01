@@ -2,14 +2,14 @@
 
 class SchemaManager {
 
-    const SCHEMA_VERSION = '2.6.0';
-    const SCHEMA_BUILD = 20261016;
+    const SCHEMA_VERSION = '2.7.0';
+    const SCHEMA_BUILD = 20261101;
 
     /**
      * Get unique checksum representing current codebase schema definitions
      */
     public static function getSchemaChecksum() {
-        return md5(self::SCHEMA_VERSION . '_' . self::SCHEMA_BUILD . '_pos_enterprise_v26');
+        return md5(self::SCHEMA_VERSION . '_' . self::SCHEMA_BUILD . '_pos_enterprise_v27');
     }
 
     /**
