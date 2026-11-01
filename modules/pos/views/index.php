@@ -2329,8 +2329,9 @@ $categoriesList = $categories ?? [];
                     <div style="display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 800; color: #0f172a;">
                         <span class="material-symbols-rounded" style="font-size: 16px; color: #059669;">payments</span>
                         <span>Cash Tendered &amp; Change</span>
+                        <span style="font-size: 9.5px; color: #dc2626; font-weight: 850; background: #fee2e2; border: 1px solid #fca5a5; padding: 1px 6px; border-radius: 4px;">* Required</span>
                     </div>
-                    <span id="pos-change-badge" style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 99px; background: #e2e8f0; color: #475569;">Exact</span>
+                    <span id="pos-change-badge" style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 99px; background: #fef3c7; color: #b45309;">Enter Cash</span>
                 </div>
 
                 <!-- Input & Quick Denomination Chips -->
@@ -3552,13 +3553,13 @@ $categoriesList = $categories ?? [];
         const rawVal = tenderedInput.value.trim();
         if (rawVal === '') {
             if (changeBadge) {
-                changeBadge.textContent = 'Exact';
-                changeBadge.style.background = '#e2e8f0';
-                changeBadge.style.color = '#475569';
+                changeBadge.textContent = 'Enter Cash';
+                changeBadge.style.background = '#fef3c7';
+                changeBadge.style.color = '#b45309';
             }
             changeDueVal.textContent = window.appFormatMoney(0);
-            changeDueVal.style.color = '#059669';
-            if (drawerNetPreview) drawerNetPreview.textContent = '+' + window.appFormatMoney(checkoutTotal);
+            changeDueVal.style.color = '#94a3b8';
+            if (drawerNetPreview) drawerNetPreview.textContent = '+' + window.appFormatMoney(0);
             return;
         }
 
@@ -4658,9 +4659,44 @@ $categoriesList = $categories ?? [];
         const creditInitialPaymentRaw = Number(creditInitialPaymentInput?.value || 0);
         const creditInitialPayment = Math.max(0, Math.min(checkoutTotal, isNaN(creditInitialPaymentRaw) ? 0 : creditInitialPaymentRaw));
         const tenderedInput = document.getElementById('cash-tendered-input');
+
+        // CASH TENDERED VALIDATION: Must be provided and cover the bill total before printing or completing sale
+        if (currentPaymentMethod === 'cash' && status !== 'draft') {
+            const rawVal = tenderedInput ? tenderedInput.value.trim() : '';
+            const numTendered = parseFloat(rawVal);
+            if (!tenderedInput || rawVal === '' || isNaN(numTendered) || numTendered <= 0) {
+                if (tenderedInput) {
+                    tenderedInput.focus();
+                    tenderedInput.style.borderColor = '#ef4444';
+                    tenderedInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.25)';
+                    setTimeout(() => {
+                        tenderedInput.style.borderColor = '#cbd5e1';
+                        tenderedInput.style.boxShadow = '';
+                    }, 3500);
+                }
+                window.appToast?.('Please enter Cash Received amount first (Total Bill: ' + window.appFormatMoney(checkoutTotal) + ')', 'error');
+                if (typeof window.playAudioTone === 'function') window.playAudioTone('error');
+                return;
+            }
+            if (numTendered < checkoutTotal) {
+                if (tenderedInput) {
+                    tenderedInput.focus();
+                    tenderedInput.style.borderColor = '#ef4444';
+                    tenderedInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.25)';
+                    setTimeout(() => {
+                        tenderedInput.style.borderColor = '#cbd5e1';
+                        tenderedInput.style.boxShadow = '';
+                    }, 3500);
+                }
+                window.appToast?.('Cash received (' + window.appFormatMoney(numTendered) + ') is less than Total Bill (' + window.appFormatMoney(checkoutTotal) + ')!', 'error');
+                if (typeof window.playAudioTone === 'function') window.playAudioTone('error');
+                return;
+            }
+        }
+
         const onlineSelect = document.getElementById('pos-online-account-select');
         const rawTendered = tenderedInput ? parseFloat(tenderedInput.value) : 0;
-        const tenderedVal = currentPaymentMethod === 'cash' ? (rawTendered > 0 ? rawTendered : checkoutTotal) : checkoutTotal;
+        const tenderedVal = currentPaymentMethod === 'cash' ? rawTendered : checkoutTotal;
         const changeVal = currentPaymentMethod === 'cash' ? Math.max(0, roundMoney(tenderedVal - checkoutTotal)) : 0;
         const paymentAccountId = currentPaymentMethod === 'online' && onlineSelect ? (onlineSelect.value || null) : null;
 

@@ -31,6 +31,12 @@ class AuthMiddleware {
     public static function handleAdmin() {
         self::handle();
         if (!Auth::isAdmin() || Auth::isSuperAdmin()) {
+            if (!Auth::isAdmin()) {
+                $baseUrl = defined('BASE_URL') ? BASE_URL : '';
+                $landing = Auth::defaultStaffUrl();
+                header('Location: ' . $baseUrl . '/' . $landing);
+                exit;
+            }
             header('HTTP/1.0 403 Forbidden');
             echo "403 Forbidden - Admin Access Required";
             exit;
@@ -40,8 +46,8 @@ class AuthMiddleware {
     public static function handleSuperAdmin() {
         self::handle();
         if (!Auth::isSuperAdmin()) {
-            header('HTTP/1.0 403 Forbidden');
-            echo "403 Forbidden - Super Admin Access Required";
+            $baseUrl = defined('BASE_URL') ? BASE_URL : '';
+            header('Location: ' . $baseUrl . '/' . Auth::defaultLandingUrl());
             exit;
         }
     }
@@ -52,6 +58,13 @@ class AuthMiddleware {
             return;
         }
         if (!Auth::can($permission)) {
+            $baseUrl = defined('BASE_URL') ? BASE_URL : '';
+            $landing = Auth::defaultStaffUrl();
+            $currentPath = trim((string) ($_GET['url'] ?? ''), '/');
+            if ($landing && $landing !== $currentPath && !str_starts_with($currentPath, $landing)) {
+                header('Location: ' . $baseUrl . '/' . $landing);
+                exit;
+            }
             header('HTTP/1.0 403 Forbidden');
             echo "403 Forbidden - You do not have access to this section.";
             exit;

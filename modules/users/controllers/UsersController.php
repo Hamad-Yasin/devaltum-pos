@@ -50,6 +50,9 @@ class UsersController extends Controller {
         $password = trim($_POST['password'] ?? '');
         $role = ($_POST['role'] ?? 'staff') === 'store_owner' ? 'store_owner' : 'staff';
         $permissions = $_POST['permissions'] ?? [];
+        if ($role === 'staff' && empty($permissions)) {
+            $permissions = ['pos'];
+        }
 
         if ($name === '' || $email === '' || $password === '') {
             $this->flash('error', 'Name, email and password are required.');
@@ -250,7 +253,9 @@ class UsersController extends Controller {
             [Tenant::currentStoreId(), $currentUserId, 'User Login', 'Logged in as user: ' . $targetUser['name']]
         );
         $this->flash('success', 'Logged in as ' . $targetUser['name'] . '.');
-        $this->redirect('home/index?tab_session=' . rawurlencode(session_id()));
+        $landing = Auth::defaultLandingUrl();
+        $sep = str_contains($landing, '?') ? '&' : '?';
+        $this->redirect($landing . $sep . 'tab_session=' . rawurlencode(session_id()));
     }
 
     public function branch($id) {
@@ -438,6 +443,9 @@ class UsersController extends Controller {
         $email = trim($_POST['email'] ?? '');
         $role = ($_POST['role'] ?? 'staff') === 'store_owner' ? 'store_owner' : 'staff';
         $permissions = $_POST['permissions'] ?? [];
+        if ($role === 'staff' && empty($permissions)) {
+            $permissions = ['pos'];
+        }
         $password = trim($_POST['password'] ?? '');
         $protectedAdminId = $this->getProtectedAdminId($db);
 

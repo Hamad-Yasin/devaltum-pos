@@ -8,6 +8,12 @@ class HomeController extends Controller {
             header('Location: ' . $baseUrl . '/superadmin/index');
             exit;
         }
+        if (Auth::check() && !Auth::isAdmin() && !Auth::can('dashboard')) {
+            $baseUrl = defined('BASE_URL') ? BASE_URL : '';
+            $landing = Auth::defaultStaffUrl();
+            header('Location: ' . $baseUrl . '/' . $landing);
+            exit;
+        }
         AuthMiddleware::handlePermission('dashboard');
     }
 

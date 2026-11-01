@@ -316,7 +316,7 @@ class AuthController extends Controller {
             [Tenant::currentStoreId(), $user['id'], 'Biometric Login', "User logged in via {$bio['device_name']} fingerprint biometric"]
         );
 
-        $redirectUrl = (defined('BASE_URL') ? BASE_URL : '') . (Auth::isSuperAdmin() ? '/superadmin/index' : '/home/index');
+        $redirectUrl = (defined('BASE_URL') ? BASE_URL : '') . '/' . Auth::defaultLandingUrl();
 
         $this->jsonResponse([
             'success' => true,
@@ -376,7 +376,10 @@ class AuthController extends Controller {
         if (Auth::isSuperAdmin()) {
             $this->redirect('superadmin/index');
         }
-        $this->redirect('home/index');
+        if (Auth::isAdmin() || Auth::can('dashboard')) {
+            $this->redirect('home/index');
+        }
+        $this->redirect(Auth::defaultStaffUrl());
     }
 
     private function isProtectedPrimarySuperAdmin($userId, $db = null) {

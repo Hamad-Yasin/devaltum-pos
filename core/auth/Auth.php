@@ -67,10 +67,55 @@ class Auth {
 
         $raw = (string) ($_SESSION['user_permissions'] ?? '');
         if ($raw === '') {
-            return false;
+            // Default permission for staff users if not explicitly configured is pos
+            return $permission === 'pos';
         }
 
         $permissions = array_filter(array_map('trim', explode(',', $raw)));
         return in_array($permission, $permissions, true);
+    }
+
+    public static function defaultStaffUrl() {
+        if (self::isAdmin()) {
+            return 'home/index';
+        }
+        if (self::can('pos')) {
+            return 'pos/index';
+        }
+        if (self::can('sales')) {
+            return 'sales/index';
+        }
+        if (self::can('dashboard')) {
+            return 'home/index';
+        }
+        if (self::can('inventory')) {
+            return 'inventory/index';
+        }
+        if (self::can('customers')) {
+            return 'customers/index';
+        }
+        if (self::can('quotations')) {
+            return 'quotations/index';
+        }
+        if (self::can('reports')) {
+            return 'reports/index';
+        }
+        if (self::can('expenses')) {
+            return 'expenses/index';
+        }
+        if (self::can('credits')) {
+            return 'credits/index';
+        }
+        return 'pos/index';
+    }
+
+    public static function defaultLandingUrl() {
+        if (self::isSuperAdmin()) {
+            return 'superadmin/index';
+        }
+        if (self::isAdmin() || self::can('dashboard')) {
+            return 'home/index';
+        }
+        return self::defaultStaffUrl();
     }
 }

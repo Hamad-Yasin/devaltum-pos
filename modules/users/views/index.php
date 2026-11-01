@@ -334,10 +334,6 @@
 <div class="users-tabs" role="tablist" aria-label="Users Tabs">
     <button type="button" class="users-tab-btn active" data-users-tab="add">Add User</button>
     <button type="button" class="users-tab-btn" data-users-tab="list">User List</button>
-    <?php if (empty($isBranchAccount)): ?>
-    <button type="button" class="users-tab-btn" data-users-tab="branch_add">Branch</button>
-    <button type="button" class="users-tab-btn" data-users-tab="branch_list">Branches List</button>
-    <?php endif; ?>
 </div>
 
 <section class="users-tab-pane active" data-users-pane="add">
@@ -366,7 +362,7 @@
                         <div class="perm-grid">
                             <?php foreach ($permissions as $key => $label): ?>
                                 <label class="perm-switch">
-                                    <input type="checkbox" name="permissions[]" value="<?php echo Security::escape($key); ?>">
+                                    <input type="checkbox" name="permissions[]" value="<?php echo Security::escape($key); ?>" <?php echo $key === 'pos' ? 'checked' : ''; ?>>
                                     <span class="perm-switch-name"><?php echo Security::escape($label); ?></span>
                                     <span class="perm-toggle-ui"></span>
                                 </label>
@@ -443,102 +439,6 @@
         </table>
     </div>
 </section>
-
-<?php if (empty($isBranchAccount)): ?>
-<section class="users-tab-pane" data-users-pane="branch_add">
-    <div class="branch-shell" style="margin-bottom:18px;">
-        <div class="card">
-            <h3 style="margin-bottom:14px;">Create Branch Account</h3>
-            <form action="<?= defined('BASE_URL') ? BASE_URL : '' ?>/users/createBranch" method="POST" data-no-ajax>
-                <?php echo Security::csrfField(); ?>
-                <div class="branch-form-grid">
-                    <div class="form-group">
-                        <label class="form-label">Branch Name</label>
-                        <input class="form-input" type="text" name="branch_name" placeholder="e.g. Lake City Branch" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Branch Code</label>
-                        <input class="form-input" type="text" name="branch_code" placeholder="Auto if empty">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Branch Admin Name</label>
-                        <input class="form-input" type="text" name="owner_name" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Branch Admin Email</label>
-                        <input class="form-input" type="email" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Password</label>
-                        <input class="form-input" type="password" name="password" minlength="6" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Phone</label>
-                        <input class="form-input" type="text" name="phone" placeholder="+92...">
-                    </div>
-                    <div class="form-group full">
-                        <label class="form-label">Address</label>
-                        <input class="form-input" type="text" name="address" placeholder="Branch address">
-                    </div>
-                </div>
-                <div class="user-form-actions">
-                    <span class="form-hint">Branch has its own dashboard, products, sales, customers and reports data.</span>
-                    <button class="btn btn-primary" type="submit"><span class="material-symbols-rounded">add_business</span>Create Branch</button>
-                </div>
-            </form>
-        </div>
-
-        <aside class="branch-note-card">
-            <h3 style="margin-bottom:10px;">Branch Dashboard Isolation</h3>
-            <p class="page-subtitle" style="line-height:1.6;">New branch gets a separate account and store context. When branch admin logs in, dashboard and all modules show only that branch's own records.</p>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
-                <span class="badge badge-success">Separate Data</span>
-                <span class="badge badge-soft">Own Login</span>
-                <span class="badge badge-soft">Branding Copied</span>
-            </div>
-        </aside>
-    </div>
-
-    </section>
-
-<section class="users-tab-pane" data-users-pane="branch_list">
-    <div class="card">
-        <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:14px;">
-            <h3>Branch Accounts</h3>
-            <span class="badge badge-soft"><?php echo count($branches ?? []); ?> Branches</span>
-        </div>
-
-        <?php if (empty($branches)): ?>
-            <div class="empty-state">No branch accounts created yet.</div>
-        <?php else: ?>
-            <div class="branch-list">
-                <?php foreach ($branches as $branch): ?>
-                    <article class="branch-card">
-                        <div class="branch-card-head">
-                            <div>
-                                <h3><?php echo Security::escape($branch['store_name']); ?></h3>
-                                <div class="page-subtitle" style="margin-top:5px;"><?php echo Security::escape($branch['branch_code'] ?: 'Branch'); ?></div>
-                            </div>
-                            <span class="badge <?php echo ($branch['status'] ?? '') === 'active' ? 'badge-success' : 'badge-danger'; ?>"><?php echo Security::escape(ucfirst((string) ($branch['status'] ?? 'active'))); ?></span>
-                        </div>
-                        <div class="branch-meta">
-                            <span><span class="material-symbols-rounded">admin_panel_settings</span><?php echo Security::escape($branch['admin_name'] ?: $branch['owner_name']); ?></span>
-                            <span><span class="material-symbols-rounded">mail</span><?php echo Security::escape($branch['admin_email'] ?: $branch['email']); ?></span>
-                            <span><span class="material-symbols-rounded">call</span><?php echo Security::escape($branch['phone'] ?: '-'); ?></span>
-                            <span><span class="material-symbols-rounded">dashboard</span>Branch Dashboard</span>
-                        </div>
-                        <div class="branch-card-actions">
-                            <a class="btn btn-secondary branch-view-btn" href="<?= defined('BASE_URL') ? BASE_URL : '' ?>/users/branch/<?php echo (int) $branch['id']; ?>">
-                                <span class="material-symbols-rounded">visibility</span>View Branch
-                            </a>
-                        </div>
-                    </article>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-    </div>
-</section>
-<?php endif; ?>
 
 <?php foreach ($users as $user): ?>
     <?php
@@ -618,7 +518,7 @@
         });
 
         const initialTab = new URLSearchParams(window.location.search).get('tab');
-        if (initialTab === 'add' || initialTab === 'list' || initialTab === 'branch_add' || initialTab === 'branch_list') {
+        if (initialTab === 'add' || initialTab === 'list') {
             const targetButton = tabButtons.find((btn) => btn.dataset.usersTab === initialTab);
             if (targetButton) setTab(initialTab);
         }
